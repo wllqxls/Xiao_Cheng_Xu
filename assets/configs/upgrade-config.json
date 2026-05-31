@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "upgrades": [
+    {
+      "id": "signal-lantern",
+      "displayName": "引灯阵列",
+      "maxLevel": 3,
+      "baseCost": 20,
+      "costGrowth": 1.6,
+      "effects": {
+        "restorePowerBonus": 0.08
+      }
+    },
+    {
+      "id": "quiet-barrier",
+      "displayName": "静界屏障",
+      "maxLevel": 3,
+      "baseCost": 25,
+      "costGrowth": 1.7,
+      "effects": {
+        "spreadReduction": 0.1
+      }
+    },
+    {
+      "id": "field-logistics",
+      "displayName": "巡修补给",
+      "maxLevel": 3,
+      "baseCost": 18,
+      "costGrowth": 1.5,
+      "effects": {
+        "resourceYieldBonus": 0.12
+      }
+    }
+  ]
+}

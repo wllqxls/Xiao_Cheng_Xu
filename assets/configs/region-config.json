@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "regions": [
+    {
+      "id": "ash-harbor",
+      "displayName": "灰港",
+      "population": 120000,
+      "initialState": "severe",
+      "resistance": 0.35,
+      "restoreDifficulty": 0.55,
+      "resourceYield": 4,
+      "neighbors": ["moss-ring", "north-gate"]
+    },
+    {
+      "id": "moss-ring",
+      "displayName": "苔环区",
+      "population": 85000,
+      "initialState": "spreading",
+      "resistance": 0.45,
+      "restoreDifficulty": 0.4,
+      "resourceYield": 3,
+      "neighbors": ["ash-harbor", "glass-yard"]
+    },
+    {
+      "id": "north-gate",
+      "displayName": "北闸",
+      "population": 64000,
+      "initialState": "latent",
+      "resistance": 0.6,
+      "restoreDifficulty": 0.35,
+      "resourceYield": 2,
+      "neighbors": ["ash-harbor", "glass-yard"]
+    },
+    {
+      "id": "glass-yard",
+      "displayName": "镜庭",
+      "population": 98000,
+      "initialState": "unaffected",
+      "resistance": 0.5,
+      "restoreDifficulty": 0.3,
+      "resourceYield": 5,
+      "neighbors": ["moss-ring", "north-gate", "silver-dam"]
+    },
+    {
+      "id": "silver-dam",
+      "displayName": "银坝",
+      "population": 73000,
+      "initialState": "latent",
+      "resistance": 0.58,
+      "restoreDifficulty": 0.38,
+      "resourceYield": 3,
+      "neighbors": ["glass-yard", "low-field"]
+    },
+    {
+      "id": "low-field",
+      "displayName": "低原",
+      "population": 112000,
+      "initialState": "spreading",
+      "resistance": 0.42,
+      "restoreDifficulty": 0.48,
+      "resourceYield": 4,
+      "neighbors": ["silver-dam", "red-rail", "wind-archive"]
+    },
+    {
+      "id": "red-rail",
+      "displayName": "赤轨",
+      "population": 56000,
+      "initialState": "controlled",
+      "resistance": 0.62,
+      "restoreDifficulty": 0.32,
+      "resourceYield": 2,
+      "neighbors": ["low-field", "wind-archive"]
+    },
+    {
+      "id": "wind-archive",
+      "displayName": "风档馆",
+      "population": 91000,
+      "initialState": "unaffected",
+      "resistance": 0.52,
+      "restoreDifficulty": 0.36,
+      "resourceYield": 5,
+      "neighbors": ["low-field", "red-rail"]
+    }
+  ]
+}

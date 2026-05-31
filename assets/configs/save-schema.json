@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "fields": {
+    "version": "number",
+    "day": "number",
+    "resources": "number",
+    "regionStates": "Record<string, RegionRuntimeState>",
+    "upgradeLevels": "Record<string, number>",
+    "completedTutorialSteps": "string[]",
+    "settings": {
+      "musicVolume": "number",
+      "sfxVolume": "number",
+      "hapticsEnabled": "boolean"
+    }
+  }
+}

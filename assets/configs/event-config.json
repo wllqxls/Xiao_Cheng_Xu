@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "events": [
+    {
+      "id": "broken-beacon",
+      "displayName": "断塔回响",
+      "weight": 12,
+      "minDay": 2,
+      "choices": [
+        {
+          "id": "repair",
+          "label": "抢修信标",
+          "cost": 12,
+          "effects": {
+            "globalRestoreProgress": 0.04
+          }
+        },
+        {
+          "id": "ignore",
+          "label": "保持资源",
+          "effects": {
+            "globalRisk": 0.05
+          }
+        }
+      ]
+    },
+    {
+      "id": "safe-route",
+      "displayName": "旧路重开",
+      "weight": 8,
+      "minDay": 3,
+      "choices": [
+        {
+          "id": "escort",
+          "label": "护送队伍",
+          "cost": 8,
+          "effects": {
+            "resourceGain": 16
+          }
+        },
+        {
+          "id": "seal",
+          "label": "封存道路",
+          "effects": {
+            "spreadReductionTurns": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "fog-surge",
+      "displayName": "雾潮倒灌",
+      "weight": 10,
+      "minDay": 4,
+      "choices": [
+        {
+          "id": "hold-line",
+          "label": "稳住边界",
+          "cost": 14,
+          "effects": {
+            "spreadReductionTurns": 1
+          }
+        },
+        {
+          "id": "save-supply",
+          "label": "保存补给",
+          "effects": {
+            "globalRisk": 0.06
+          }
+        }
+      ]
+    },
+    {
+      "id": "quiet-market",
+      "displayName": "静市复灯",
+      "weight": 7,
+      "minDay": 5,
+      "choices": [
+        {
+          "id": "support",
+          "label": "支援复灯",
+          "cost": 10,
+          "effects": {
+            "globalRestoreProgress": 0.05
+          }
+        },
+        {
+          "id": "collect",
+          "label": "回收物资",
+          "effects": {
+            "resourceGain": 12
+          }
+        }
+      ]
+    },
+    {
+      "id": "archive-map",
+      "displayName": "旧图校准",
+      "weight": 6,
+      "minDay": 6,
+      "choices": [
+        {
+          "id": "trace",
+          "label": "追踪暗线",
+          "cost": 8,
+          "effects": {
+            "globalRisk": -0.04
+          }
+        },
+        {
+          "id": "publish",
+          "label": "公开路线",
+          "effects": {
+            "resourceGain": 8,
+            "globalRestoreProgress": 0.02
+          }
+        }
+      ]
+    }
+  ]
+}
