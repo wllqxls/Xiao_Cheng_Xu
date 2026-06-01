@@ -175,7 +175,7 @@ export class GameBootstrap extends Component {
     this.resourceLabel = this.createLabel('ResourceLabel', topBar, '', 28, new Vec3(-130, 22, 0));
     this.riskLabel = this.createLabel('RiskLabel', topBar, '', 28, new Vec3(130, 22, 0));
     this.progressLabel = this.createLabel('ProgressLabel', topBar, '', 28, new Vec3(380, 22, 0));
-    this.feedbackLabel = this.createLabel('FeedbackLabel', root, '', 24, new Vec3(0, -300, 0));
+    this.feedbackLabel = this.createLabel('FeedbackLabel', root, '', 23, new Vec3(0, -260, 0));
     this.feedbackLabel.getComponent(UITransform)?.setContentSize(920, 48);
 
     const mapLayer = new Node('MapLayer');
@@ -190,21 +190,21 @@ export class GameBootstrap extends Component {
       'BottomPanel',
       root,
       1040,
-      520,
-      new Vec3(0, -620, 0),
+      500,
+      new Vec3(0, -640, 0),
       new Color(24, 32, 44, 245),
     );
-    this.selectedNameLabel = this.createLabel('SelectedNameLabel', bottomPanel, '', 34, new Vec3(-420, 190, 0));
-    this.selectedDetailLabel = this.createLabel('SelectedDetailLabel', bottomPanel, '', 24, new Vec3(-65, 140, 0));
+    this.selectedNameLabel = this.createLabel('SelectedNameLabel', bottomPanel, '', 32, new Vec3(-405, 190, 0));
+    this.selectedDetailLabel = this.createLabel('SelectedDetailLabel', bottomPanel, '', 23, new Vec3(-80, 140, 0));
     this.selectedDetailLabel.horizontalAlign = Label.HorizontalAlign.LEFT;
     this.selectedDetailLabel.overflow = Label.Overflow.RESIZE_HEIGHT;
-    this.selectedDetailLabel.getComponent(UITransform)?.setContentSize(860, 90);
+    this.selectedDetailLabel.getComponent(UITransform)?.setContentSize(800, 92);
 
-    this.createButton('RestoreButton', bottomPanel, '修复', new Vec3(-320, 40, 0), () => this.handleRestore());
-    this.createButton('ControlButton', bottomPanel, '隔离', new Vec3(0, 40, 0), () => this.handleControl());
-    this.createButton('AdvanceDayButton', bottomPanel, '推进', new Vec3(320, 40, 0), () => this.handleAdvanceDay());
-    this.createButton('SettingsButton', bottomPanel, '设置', new Vec3(230, 210, 0), () => this.handleOpenSettings(), 150, 50);
-    this.createButton('RestartButton', bottomPanel, '重开', new Vec3(400, 210, 0), () => this.handleRestart(), 150, 50);
+    this.createButton('SettingsButton', bottomPanel, '设置', new Vec3(230, 205, 0), () => this.handleOpenSettings(), 140, 48, 22);
+    this.createButton('RestartButton', bottomPanel, '重开', new Vec3(390, 205, 0), () => this.handleRestart(), 140, 48, 22);
+    this.createButton('RestoreButton', bottomPanel, '修复', new Vec3(-320, 30, 0), () => this.handleRestore(), 220, 68);
+    this.createButton('ControlButton', bottomPanel, '隔离', new Vec3(0, 30, 0), () => this.handleControl(), 220, 68);
+    this.createButton('AdvanceDayButton', bottomPanel, '推进', new Vec3(320, 30, 0), () => this.handleAdvanceDay(), 220, 68);
 
     this.upgradeLabels = this.upgradeConfig.upgrades.map((upgrade, index) => {
       const x = -320 + index * 320;
@@ -212,8 +212,11 @@ export class GameBootstrap extends Component {
         `UpgradeButton${index + 1}`,
         bottomPanel,
         '',
-        new Vec3(x, -105, 0),
+        new Vec3(x, -120, 0),
         () => this.handleBuyUpgrade(upgrade.id),
+        220,
+        72,
+        21,
       );
       const label = button.getChildByName('Label')?.getComponent(Label);
       if (!label) {
@@ -548,6 +551,7 @@ export class GameBootstrap extends Component {
         ? '已满'
         : `${getUpgradeCost(upgrade.baseCost, upgrade.costGrowth, level)} 明烬`;
       label.string = `${upgrade.displayName}\nLv.${level}/${upgrade.maxLevel}  ${cost}`;
+      this.fitLabelFont(label, 21, 18, 10);
     });
   }
 
@@ -758,6 +762,7 @@ export class GameBootstrap extends Component {
     onClick: () => void,
     width = 250,
     height = 76,
+    fontSize = 26,
   ): Node {
     const buttonNode = this.createPanel(name, parent, width, height, position, new Color(59, 130, 180, 255));
     buttonNode.addComponent(Button);
@@ -765,7 +770,8 @@ export class GameBootstrap extends Component {
       this.playCue('tap');
       onClick();
     });
-    this.createLabel('Label', buttonNode, text, 26, new Vec3(0, 0, 0));
+    const label = this.createLabel('Label', buttonNode, text, fontSize, new Vec3(0, 0, 0));
+    label.getComponent(UITransform)?.setContentSize(width - 20, height - 8);
 
     const widget = buttonNode.addComponent(Widget);
     widget.alignMode = Widget.AlignMode.ONCE;
@@ -782,6 +788,12 @@ export class GameBootstrap extends Component {
 
     label.fontSize = 24;
     return label;
+  }
+
+  private fitLabelFont(label: Label, maxSize: number, minSize: number, maxCharsPerLine: number): void {
+    const longestLine = label.string.split('\n').reduce((longest, line) => Math.max(longest, line.length), 0);
+    label.fontSize = longestLine > maxCharsPerLine ? minSize : maxSize;
+    label.lineHeight = Math.ceil(label.fontSize * 1.2);
   }
 }
 
