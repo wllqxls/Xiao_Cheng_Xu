@@ -65,8 +65,17 @@ Canvas
 - `regionConfigAsset`：`assets/configs/region-config.json`
 - `upgradeConfigAsset`：`assets/configs/upgrade-config.json`
 - `eventConfigAsset`：`assets/configs/event-config.json`
+- `ambienceClip`：主界面循环氛围音，可暂时为空。
+- `tapClip`：普通点击音，可暂时为空。
+- `upgradeClip`：升级成功音，可暂时为空。
+- `eventClip`：事件出现音，可暂时为空。
+- `restoreClip`：区域修复音，可暂时为空。
+- `riskClip`：风险提示音，可暂时为空。
+- `victoryClip`：胜利音，可暂时为空。
+- `failureClip`：失败音，可暂时为空。
 
 `GameBootstrap` 会读取配置，创建地图卡片、操作按钮、事件弹窗、设置弹窗和结算弹窗，并在状态变化后写入本地存档。
+音频属性未绑定时，音频系统会静默跳过播放，不影响预览和基础玩法验证。
 
 ### MapRegionView
 
@@ -139,7 +148,7 @@ Canvas
 ## 当前限制
 
 - 当前 UI 是运行时生成的占位界面，不是最终美术节点树。
-- 当前设置面板已保存 BGM 音量、音效音量和触感开关，但还没有接入真实音频资源播放。
+- 当前设置面板已保存 BGM 音量、音效音量和触感开关；音频播放入口已接入，正式音频资源尚未入库。
 - 当前微信小游戏构建目录尚未生成，需要在 Cocos Creator 构建发布面板中执行构建。
 
 ## 下一步

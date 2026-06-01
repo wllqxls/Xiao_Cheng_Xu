@@ -25,6 +25,26 @@
 | `sfx-failure.mp3` | 失败 | 短音效 | 2 到 4 秒 |
 | `ambience-main.mp3` | 主界面氛围 | 循环音 | 可关闭，默认低音量 |
 
+## 当前接入状态
+
+- `assets/scripts/systems/AudioSystem.ts` 已提供 BGM 同步、短音效播放和音量限制。
+- `GameBootstrap` 已预留音频属性：`ambienceClip`、`tapClip`、`upgradeClip`、`eventClip`、`restoreClip`、`riskClip`、`victoryClip`、`failureClip`。
+- 设置面板里的 BGM 音量和音效音量会实时影响 `AudioSource`。
+- 当前仓库还没有正式音频素材；未绑定 `AudioClip` 时系统会静默跳过播放。
+
+## 绑定规则
+
+音频素材入库后，在 Cocos Creator 中打开 `assets/scenes/main.scene`，选中挂有 `GameBootstrap` 的 `Canvas`，按用途拖入对应属性：
+
+- `ambience-main.mp3` -> `ambienceClip`
+- `sfx-tap.mp3` -> `tapClip`
+- `sfx-upgrade.mp3` -> `upgradeClip`
+- `sfx-event.mp3` -> `eventClip`
+- `sfx-restore.mp3` -> `restoreClip`
+- `sfx-risk.mp3` -> `riskClip`
+- `sfx-victory.mp3` -> `victoryClip`
+- `sfx-failure.mp3` -> `failureClip`
+
 ## 入库记录模板
 
 ```text

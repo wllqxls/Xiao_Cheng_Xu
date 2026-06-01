@@ -1,5 +1,7 @@
 import {
   _decorator,
+  AudioClip,
+  AudioSource,
   Button,
   Color,
   Component,
@@ -16,6 +18,7 @@ import { createInitialGameState } from '../state/createInitialGameState';
 import { clearSave, loadGame, saveGame } from '../save/SaveSystem';
 import { advanceDay } from '../systems/GameLoopSystem';
 import { applyEventChoice } from '../systems/EventSystem';
+import { playAudioCue, syncAmbienceAudio, type AudioCue, type AudioCueMap } from '../systems/AudioSystem';
 import {
   controlRegion,
   getControlCost,
@@ -29,6 +32,7 @@ import { updateGameResult } from '../systems/VictorySystem';
 import type {
   EventChoiceConfig,
   EventConfigFile,
+  GameResult,
   GameState,
   GameSettings,
   RegionConfig,
@@ -84,6 +88,30 @@ export class GameBootstrap extends Component {
   @property(JsonAsset)
   public eventConfigAsset: JsonAsset | null = null;
 
+  @property(AudioClip)
+  public ambienceClip: AudioClip | null = null;
+
+  @property(AudioClip)
+  public tapClip: AudioClip | null = null;
+
+  @property(AudioClip)
+  public upgradeClip: AudioClip | null = null;
+
+  @property(AudioClip)
+  public eventClip: AudioClip | null = null;
+
+  @property(AudioClip)
+  public restoreClip: AudioClip | null = null;
+
+  @property(AudioClip)
+  public riskClip: AudioClip | null = null;
+
+  @property(AudioClip)
+  public victoryClip: AudioClip | null = null;
+
+  @property(AudioClip)
+  public failureClip: AudioClip | null = null;
+
   private regionConfig!: RegionConfigFile;
   private upgradeConfig!: UpgradeConfigFile;
   private eventConfig!: EventConfigFile;
@@ -109,6 +137,9 @@ export class GameBootstrap extends Component {
   private eventTitleLabel!: Label;
   private eventChoiceLabels: Label[] = [];
   private pendingEventChoices: EventChoiceConfig[] = [];
+  private musicSource: AudioSource | null = null;
+  private sfxSource: AudioSource | null = null;
+  private playedResultCue: GameResult | undefined;
 
   protected start(): void {
     this.loadConfigs();
@@ -120,6 +151,7 @@ export class GameBootstrap extends Component {
     this.selectedRegionId = this.regionConfig.regions[0]?.id ?? '';
 
     this.buildUi();
+    this.buildAudio();
     this.afterStateChange(false);
     this.showTutorialHintIfNeeded();
   }
@@ -194,6 +226,18 @@ export class GameBootstrap extends Component {
     this.buildEventPanel(root);
     this.buildResultPanel(root);
     this.buildSettingsPanel(root);
+  }
+
+  private buildAudio(): void {
+    const musicNode = new Node('MusicAudioSource');
+    this.node.addChild(musicNode);
+    this.musicSource = musicNode.addComponent(AudioSource);
+
+    const sfxNode = new Node('SfxAudioSource');
+    this.node.addChild(sfxNode);
+    this.sfxSource = sfxNode.addComponent(AudioSource);
+
+    this.syncAudioSettings();
   }
 
   private createRegionCard(parent: Node, region: RegionConfig, index: number): RegionCard {
@@ -278,6 +322,7 @@ export class GameBootstrap extends Component {
     const success = restoreRegion(this.state, this.regionConfig, this.upgradeConfig, this.selectedRegionId);
     if (success) {
       this.completeTutorialStep('first-action');
+      this.playCue('restore');
     }
     this.feedbackLabel.string = success
       ? `${selectedRegion?.displayName ?? '区域'}修复推进`
@@ -295,6 +340,7 @@ export class GameBootstrap extends Component {
     const success = controlRegion(this.state, this.regionConfig, this.selectedRegionId);
     if (success) {
       this.completeTutorialStep('first-action');
+      this.playCue('risk');
     }
     this.feedbackLabel.string = success
       ? `${selectedRegion?.displayName ?? '区域'}进入受控状态`
@@ -308,6 +354,7 @@ export class GameBootstrap extends Component {
       return;
     }
 
+    const riskBefore = this.state.globalRisk;
     const result = advanceDay(this.state, this.regionConfig, this.upgradeConfig, this.eventConfig);
     this.completeTutorialStep('advance-day');
     this.feedbackLabel.string = result.resourceGain > 0
@@ -317,6 +364,9 @@ export class GameBootstrap extends Component {
     this.afterStateChange();
 
     if (!result.eventId || this.isGameFinished()) {
+      if (this.state.globalRisk > riskBefore) {
+        this.playCue('risk');
+      }
       return;
     }
 
@@ -327,6 +377,7 @@ export class GameBootstrap extends Component {
 
     this.pendingEventChoices = eventConfig.choices;
     this.eventPanel.active = true;
+    this.playCue('event');
     this.eventTitleLabel.string = eventConfig.displayName;
     this.eventChoiceLabels.forEach((label, index) => {
       const choice = eventConfig.choices[index];
@@ -344,6 +395,7 @@ export class GameBootstrap extends Component {
     const success = buyUpgrade(this.state, this.upgradeConfig, upgradeId);
     if (success) {
       this.completeTutorialStep('first-action');
+      this.playCue('upgrade');
     }
     this.feedbackLabel.string = success
       ? `${upgrade?.displayName ?? '能力'}已升级`
@@ -365,12 +417,14 @@ export class GameBootstrap extends Component {
   private handleCycleMusicVolume(): void {
     this.state.settings.musicVolume = this.getNextVolumeStep(this.state.settings.musicVolume);
     this.feedbackLabel.string = `BGM 音量 ${this.formatVolume(this.state.settings.musicVolume)}`;
+    this.syncAudioSettings();
     this.afterStateChange();
   }
 
   private handleCycleSfxVolume(): void {
     this.state.settings.sfxVolume = this.getNextVolumeStep(this.state.settings.sfxVolume);
     this.feedbackLabel.string = `音效音量 ${this.formatVolume(this.state.settings.sfxVolume)}`;
+    this.syncAudioSettings();
     this.afterStateChange();
   }
 
@@ -391,6 +445,7 @@ export class GameBootstrap extends Component {
     this.pendingEventChoices = [];
     this.eventPanel.active = false;
     this.resultPanel.active = false;
+    this.playedResultCue = undefined;
     this.feedbackLabel.string = '新一轮修复任务已开始';
     this.afterStateChange();
   }
@@ -432,6 +487,7 @@ export class GameBootstrap extends Component {
       saveGame(localStorageAdapter, this.state);
     }
 
+    this.syncAudioSettings();
     this.refreshViews();
   }
 
@@ -515,11 +571,13 @@ export class GameBootstrap extends Component {
     this.resultPanel.active = true;
 
     if (this.state.result === 'victory') {
+      this.playResultCueOnce('victory');
       this.resultTitleLabel.string = '归明完成';
       this.resultDetailLabel.string = `第 ${this.state.day} 天，全部区域恢复到稳定秩序。`;
       return;
     }
 
+    this.playResultCueOnce('failure');
     this.resultTitleLabel.string = '静界失守';
     this.resultDetailLabel.string = `第 ${this.state.day} 天，全局风险达到 ${Math.round(this.state.globalRisk * 100)}%。`;
   }
@@ -614,6 +672,35 @@ export class GameBootstrap extends Component {
     return `${Math.round(volume * 100)}%`;
   }
 
+  private syncAudioSettings(): void {
+    syncAmbienceAudio(this.musicSource, this.ambienceClip, this.state.settings);
+  }
+
+  private playCue(cue: AudioCue): void {
+    playAudioCue(this.sfxSource, cue, this.getAudioCueMap(), this.state.settings);
+  }
+
+  private playResultCueOnce(result: Exclude<GameResult, 'playing'>): void {
+    if (this.playedResultCue === result) {
+      return;
+    }
+
+    this.playedResultCue = result;
+    this.playCue(result);
+  }
+
+  private getAudioCueMap(): AudioCueMap {
+    return {
+      tap: this.tapClip,
+      restore: this.restoreClip,
+      upgrade: this.upgradeClip,
+      event: this.eventClip,
+      risk: this.riskClip,
+      victory: this.victoryClip,
+      failure: this.failureClip,
+    };
+  }
+
   private createPanel(name: string, parent: Node, width: number, height: number, position: Vec3, color: Color): Node {
     const node = new Node(name);
     parent.addChild(node);
@@ -665,7 +752,10 @@ export class GameBootstrap extends Component {
   ): Node {
     const buttonNode = this.createPanel(name, parent, width, height, position, new Color(59, 130, 180, 255));
     buttonNode.addComponent(Button);
-    buttonNode.on(Button.EventType.CLICK, onClick);
+    buttonNode.on(Button.EventType.CLICK, () => {
+      this.playCue('tap');
+      onClick();
+    });
     this.createLabel('Label', buttonNode, text, 26, new Vec3(0, 0, 0));
 
     const widget = buttonNode.addComponent(Widget);
