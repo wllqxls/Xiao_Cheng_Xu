@@ -87,6 +87,28 @@ $logPath = 'C:\codex33\Wen_Yi\temp\wechat-build-command.log'
 
 当前机器已尝试命令行构建；未生成 `build/wechatgame`。优先处理 Cocos Developer 登录状态，再从构建发布面板手动执行一次微信小游戏构建。
 
+低配置机器建议分步执行：
+
+1. 只打开 Cocos Creator 或只跑 Cocos 命令行构建，不同时打开微信开发者工具。
+2. 构建完成后关闭 Cocos Creator。
+3. 再用微信开发者工具打开 `build/wechatgame`。
+4. 如微信开发者工具卡顿，可用 `--disable-gpu` 启动：
+
+```powershell
+Start-Process -FilePath 'C:\Program Files (x86)\Tencent\微信web开发者工具\微信开发者工具.exe' -ArgumentList @('--disable-gpu','--project','C:\codex33\Wen_Yi\build\wechatgame')
+```
+
+当前验证结果：
+
+- Cocos 命令行构建返回 `36`，构建成功。
+- 构建目录：`C:\codex33\Wen_Yi\build\wechatgame`。
+- 构建产物包含 `game.js`、`game.json`、`project.config.json`。
+- `game.json` 中 `deviceOrientation` 为 `portrait`。
+- `project.config.json` 中 `compileType` 为 `game`。
+- 当前包体约 6 MB。
+- 微信开发者工具可打开构建目录并进入游戏主界面。
+- 开发者工具控制台出现的 `webapi_getwxaasyncsecinfo:fail` 属于工具/微信 SDK 侧报错；当前没有看到项目脚本抛出的 `GameBootstrap` 初始化错误。
+
 ## 包体控制
 
 - 首包只放 MVP 必需资源。
