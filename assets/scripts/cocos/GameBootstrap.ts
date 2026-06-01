@@ -30,6 +30,7 @@ import type {
   EventChoiceConfig,
   EventConfigFile,
   GameState,
+  GameSettings,
   RegionConfig,
   RegionConfigFile,
   RegionRuntimeState,
@@ -92,6 +93,10 @@ export class GameBootstrap extends Component {
   private resultPanel!: Node;
   private resultTitleLabel!: Label;
   private resultDetailLabel!: Label;
+  private settingsPanel!: Node;
+  private musicSettingLabel!: Label;
+  private sfxSettingLabel!: Label;
+  private hapticsSettingLabel!: Label;
   private upgradeLabels: Label[] = [];
   private eventPanel!: Node;
   private eventTitleLabel!: Label;
@@ -158,7 +163,8 @@ export class GameBootstrap extends Component {
     this.createButton('RestoreButton', bottomPanel, '修复', new Vec3(-320, 40, 0), () => this.handleRestore());
     this.createButton('ControlButton', bottomPanel, '隔离', new Vec3(0, 40, 0), () => this.handleControl());
     this.createButton('AdvanceDayButton', bottomPanel, '推进', new Vec3(320, 40, 0), () => this.handleAdvanceDay());
-    this.createButton('RestartButton', bottomPanel, '重开', new Vec3(380, 185, 0), () => this.handleRestart(), 170, 58);
+    this.createButton('SettingsButton', bottomPanel, '设置', new Vec3(230, 210, 0), () => this.handleOpenSettings(), 150, 50);
+    this.createButton('RestartButton', bottomPanel, '重开', new Vec3(400, 210, 0), () => this.handleRestart(), 150, 50);
 
     this.upgradeLabels = this.upgradeConfig.upgrades.map((upgrade, index) => {
       const x = -320 + index * 320;
@@ -179,6 +185,7 @@ export class GameBootstrap extends Component {
 
     this.buildEventPanel(root);
     this.buildResultPanel(root);
+    this.buildSettingsPanel(root);
   }
 
   private createRegionCard(parent: Node, region: RegionConfig, index: number): RegionCard {
@@ -239,6 +246,17 @@ export class GameBootstrap extends Component {
     this.resultDetailLabel.getComponent(UITransform)?.setContentSize(680, 120);
     this.resultDetailLabel.overflow = Label.Overflow.RESIZE_HEIGHT;
     this.createButton('ResultRestartButton', this.resultPanel, '重新开始', new Vec3(0, -115, 0), () => this.handleRestart(), 300, 72);
+  }
+
+  private buildSettingsPanel(root: Node): void {
+    this.settingsPanel = this.createPanel('SettingsPanel', root, 820, 430, new Vec3(0, 35, 0), new Color(17, 24, 39, 252));
+    this.settingsPanel.active = false;
+    this.createLabel('SettingsTitleLabel', this.settingsPanel, '设置', 40, new Vec3(0, 145, 0));
+
+    this.musicSettingLabel = this.createSettingButton('MusicVolumeButton', new Vec3(0, 70, 0), () => this.handleCycleMusicVolume());
+    this.sfxSettingLabel = this.createSettingButton('SfxVolumeButton', new Vec3(0, -10, 0), () => this.handleCycleSfxVolume());
+    this.hapticsSettingLabel = this.createSettingButton('HapticsButton', new Vec3(0, -90, 0), () => this.handleToggleHaptics());
+    this.createButton('CloseSettingsButton', this.settingsPanel, '关闭', new Vec3(0, -165, 0), () => this.handleCloseSettings(), 260, 64);
   }
 
   private handleRestore(): void {
@@ -307,6 +325,34 @@ export class GameBootstrap extends Component {
     this.feedbackLabel.string = success
       ? `${upgrade?.displayName ?? '能力'}已升级`
       : this.getUpgradeBlockedText(upgradeId);
+    this.afterStateChange();
+  }
+
+  private handleOpenSettings(): void {
+    this.settingsPanel.active = true;
+    this.refreshSettingsPanel();
+  }
+
+  private handleCloseSettings(): void {
+    this.settingsPanel.active = false;
+    this.refreshViews();
+  }
+
+  private handleCycleMusicVolume(): void {
+    this.state.settings.musicVolume = this.getNextVolumeStep(this.state.settings.musicVolume);
+    this.feedbackLabel.string = `BGM 音量 ${this.formatVolume(this.state.settings.musicVolume)}`;
+    this.afterStateChange();
+  }
+
+  private handleCycleSfxVolume(): void {
+    this.state.settings.sfxVolume = this.getNextVolumeStep(this.state.settings.sfxVolume);
+    this.feedbackLabel.string = `音效音量 ${this.formatVolume(this.state.settings.sfxVolume)}`;
+    this.afterStateChange();
+  }
+
+  private handleToggleHaptics(): void {
+    this.state.settings.hapticsEnabled = !this.state.settings.hapticsEnabled;
+    this.feedbackLabel.string = this.state.settings.hapticsEnabled ? '触感反馈已开启' : '触感反馈已关闭';
     this.afterStateChange();
   }
 
@@ -383,6 +429,7 @@ export class GameBootstrap extends Component {
     const selectedRuntime = selectedRegion ? this.state.regionStates[selectedRegion.id] : undefined;
     this.refreshSelectedRegion(selectedRegion, selectedRuntime);
     this.refreshUpgradeLabels();
+    this.refreshSettingsPanel();
     this.refreshResultPanel();
   }
 
@@ -418,6 +465,17 @@ export class GameBootstrap extends Component {
         : `${getUpgradeCost(upgrade.baseCost, upgrade.costGrowth, level)} 明烬`;
       label.string = `${upgrade.displayName}\nLv.${level}/${upgrade.maxLevel}  ${cost}`;
     });
+  }
+
+  private refreshSettingsPanel(): void {
+    if (!this.settingsPanel || !this.musicSettingLabel || !this.sfxSettingLabel || !this.hapticsSettingLabel) {
+      return;
+    }
+
+    const settings = this.state.settings;
+    this.musicSettingLabel.string = `BGM 音量  ${this.formatVolume(settings.musicVolume)}`;
+    this.sfxSettingLabel.string = `音效音量  ${this.formatVolume(settings.sfxVolume)}`;
+    this.hapticsSettingLabel.string = `触感反馈  ${settings.hapticsEnabled ? '开' : '关'}`;
   }
 
   private refreshResultPanel(): void {
@@ -486,6 +544,21 @@ export class GameBootstrap extends Component {
     return finished;
   }
 
+  private getNextVolumeStep(currentVolume: number): number {
+    const steps = [0, 0.25, 0.5, 0.75, 1];
+    const nearestIndex = steps.reduce((bestIndex, step, index) => {
+      const bestDistance = Math.abs(steps[bestIndex] - currentVolume);
+      const distance = Math.abs(step - currentVolume);
+      return distance < bestDistance ? index : bestIndex;
+    }, 0);
+
+    return steps[(nearestIndex + 1) % steps.length];
+  }
+
+  private formatVolume(volume: GameSettings['musicVolume']): string {
+    return `${Math.round(volume * 100)}%`;
+  }
+
   private createPanel(name: string, parent: Node, width: number, height: number, position: Vec3, color: Color): Node {
     const node = new Node(name);
     parent.addChild(node);
@@ -544,6 +617,17 @@ export class GameBootstrap extends Component {
     widget.alignMode = Widget.AlignMode.ONCE;
 
     return buttonNode;
+  }
+
+  private createSettingButton(name: string, position: Vec3, onClick: () => void): Label {
+    const button = this.createButton(name, this.settingsPanel, '', position, onClick, 620, 64);
+    const label = button.getChildByName('Label')?.getComponent(Label);
+    if (!label) {
+      throw new Error('Setting button label missing.');
+    }
+
+    label.fontSize = 24;
+    return label;
   }
 }
 

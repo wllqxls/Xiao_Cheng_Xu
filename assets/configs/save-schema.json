@@ -4,6 +4,9 @@
     "version": "number",
     "day": "number",
     "resources": "number",
+    "globalRisk": "number",
+    "globalRestoreProgress": "number",
+    "spreadReductionTurns": "number",
     "regionStates": "Record<string, RegionRuntimeState>",
     "upgradeLevels": "Record<string, number>",
     "completedTutorialSteps": "string[]",
@@ -11,6 +14,8 @@
       "musicVolume": "number",
       "sfxVolume": "number",
       "hapticsEnabled": "boolean"
-    }
+    },
+    "lastEventId": "string | undefined",
+    "result": "playing | victory | failure"
   }
 }
