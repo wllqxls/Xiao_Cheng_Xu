@@ -54,12 +54,24 @@
 - `version`
 - `day`
 - `resources`
+- `globalRisk`
+- `globalRestoreProgress`
+- `spreadReductionTurns`
 - `regionStates`
 - `upgradeLevels`
 - `completedTutorialSteps`
 - `settings`
+- `result`
 
 后续版本需要新增字段时，通过迁移函数补默认值，不允许让旧存档直接崩溃。
+
+`settings` 当前字段：
+
+- `musicVolume`：BGM 音量，范围 `0` 到 `1`。
+- `sfxVolume`：音效音量，范围 `0` 到 `1`。
+- `hapticsEnabled`：触感反馈开关。
+
+`SaveSystem` 会在读取存档时补齐缺失的设置、教程和临时效果字段，并把音量限制在 `0` 到 `1`。
 
 ## 区域状态枚举
 

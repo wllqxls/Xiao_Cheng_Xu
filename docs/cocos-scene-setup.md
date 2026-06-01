@@ -2,67 +2,75 @@
 
 ## 目标
 
-把当前纯 TypeScript 玩法系统接到 Cocos Creator 3.8.x 的竖屏场景里。第一版只做可操作原型，不追求最终美术。
+说明当前 Cocos Creator 3.8.x 竖屏场景的接入方式。第一版只做可操作原型，不追求最终美术。
 
 ## 场景结构建议
 
-在 `assets/scenes` 新建主场景，建议命名为 `main.scene`。
+主场景为 `assets/scenes/main.scene`。当前原型由 `Canvas` 上的 `GameBootstrap` 在运行时创建 UI 节点。
 
-节点层级建议：
+运行时节点层级：
 
 ```text
 Canvas
-  GameRoot
-  SafeArea
-    TopBar
-      DayLabel
-      ResourceLabel
-      RiskLabel
-      ProgressLabel
-    MapLayer
-      RegionAshHarbor
-      RegionMossRing
-      RegionNorthGate
-      RegionGlassYard
-      RegionSilverDam
-      RegionLowField
-      RegionRedRail
-      RegionWindArchive
-    BottomPanel
-      SelectedNameLabel
-      SelectedDetailLabel
-      RestoreButton
-      ControlButton
-      AdvanceDayButton
-      UpgradeButtonA
-      UpgradeButtonB
-      UpgradeButtonC
-    EventPanel
-      EventTitleLabel
-      ChoiceButtonA
-      ChoiceButtonB
+  TopBar
+    DayLabel
+    ResourceLabel
+    RiskLabel
+    ProgressLabel
+  FeedbackLabel
+  MapLayer
+    Region-ash-harbor
+    Region-moss-ring
+    Region-north-gate
+    Region-glass-yard
+    Region-silver-dam
+    Region-low-field
+    Region-red-rail
+    Region-wind-archive
+  BottomPanel
+    SelectedNameLabel
+    SelectedDetailLabel
+    RestoreButton
+    ControlButton
+    AdvanceDayButton
+    SettingsButton
+    RestartButton
+    UpgradeButton1
+    UpgradeButton2
+    UpgradeButton3
+  EventPanel
+    EventTitleLabel
+    EventChoice1
+    EventChoice2
+  ResultPanel
+    ResultTitleLabel
+    ResultDetailLabel
+    ResultRestartButton
+  SettingsPanel
+    SettingsTitleLabel
+    MusicVolumeButton
+    SfxVolumeButton
+    HapticsButton
+    CloseSettingsButton
 ```
 
 ## 组件挂载
 
-### GameRoot
+### GameBootstrap
 
-挂到 `GameRoot` 节点。
+挂到 `Canvas` 节点。
 
 需要拖入：
 
 - `regionConfigAsset`：`assets/configs/region-config.json`
 - `upgradeConfigAsset`：`assets/configs/upgrade-config.json`
 - `eventConfigAsset`：`assets/configs/event-config.json`
-- `hudView`：`BottomPanel` 或独立 HUD 节点上的 `HudView`
-- `eventPanelView`：`EventPanel` 上的 `EventPanelView`
-- `regionViews`：地图上的 8 个 `MapRegionView`
 
-`regionViews` 的顺序默认对应 `region-config.json` 的区域顺序。也可以手动给每个 `MapRegionView.regionId` 填区域 id。
+`GameBootstrap` 会读取配置，创建地图卡片、操作按钮、事件弹窗、设置弹窗和结算弹窗，并在状态变化后写入本地存档。
 
 ### MapRegionView
 
-每个地图区域节点挂一个 `MapRegionView`。
+`MapRegionView` 保留为后续手工搭建地图节点时使用。当前 `GameBootstrap` 先用运行时纯色矩形区域占位。
 
 建议节点包含：
 
@@ -130,14 +138,13 @@ Canvas
 
 ## 当前限制
 
-- 当前仓库还不是完整 Cocos Creator 工程，缺少 Cocos 自动生成的项目配置文件。
-- 当前脚本已经按 Cocos 组件写好，但需要在 Cocos Creator 3.8.x 中创建场景并挂节点后才能预览。
-- 本地没有全局 `tsc`，严格类型检查需要等 Cocos 工程或本地 TypeScript 环境就位后执行。
+- 当前 UI 是运行时生成的占位界面，不是最终美术节点树。
+- 当前设置面板已保存 BGM 音量、音效音量和触感开关，但还没有接入真实音频资源播放。
+- 当前微信小游戏构建目录尚未生成，需要在 Cocos Creator 构建发布面板中执行构建。
 
 ## 下一步
 
-1. 用 Cocos Creator 3.8.x 创建或打开本目录作为项目。
-2. 新建 `main.scene`。
-3. 按本文档创建节点和挂组件。
-4. 拖入 3 个 JSON 配置资源。
-5. 运行 Cocos 预览，检查点击、资源、升级、事件和存档。
+1. 运行 Cocos 预览，检查点击、资源、升级、事件、设置、重开和存档。
+2. 将运行时占位 UI 逐步替换为正式 Cocos 节点或 Prefab。
+3. 接入 `assets/audio` 中的真实音效和背景音。
+4. 构建微信小游戏目录并用微信开发者工具验证。

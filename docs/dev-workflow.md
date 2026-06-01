@@ -2,7 +2,7 @@
 
 ## 当前可运行目标
 
-第一阶段先把 `assets/scenes/main.scene` 跑起来。场景中的 `Canvas` 已挂 `GameBootstrap`，运行时会自动创建占位地图、HUD、底部操作区、事件面板和胜负面板。
+第一阶段先把 `assets/scenes/main.scene` 跑起来。场景中的 `Canvas` 已挂 `GameBootstrap`，运行时会自动创建占位地图、HUD、底部操作区、事件面板、设置面板和胜负面板。
 
 ## 每次改动前
 
@@ -55,7 +55,7 @@ git diff --check
 2. 打开项目 `C:\codex33\Wen_Yi`。
 3. 打开 `assets/scenes/main.scene`。
 4. 点击预览。
-5. 检查地图区域、修复、隔离、推进、升级、事件和胜负面板。
+5. 检查地图区域、修复、隔离、推进、升级、事件、设置、重开、教程提示和胜负面板。
 
 ## 微信开发者工具
 
