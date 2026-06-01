@@ -22,7 +22,8 @@ import {
   recalculateRestoreProgress,
   restoreRegion,
 } from '../systems/RegionSystem';
-import { buyUpgrade } from '../systems/UpgradeSystem';
+import { buyUpgrade, getUpgradeCost } from '../systems/UpgradeSystem';
+import { updateGameResult } from '../systems/VictorySystem';
 import type {
   EventChoiceConfig,
   EventConfigFile,
@@ -83,8 +84,12 @@ export class GameBootstrap extends Component {
   private resourceLabel!: Label;
   private riskLabel!: Label;
   private progressLabel!: Label;
+  private feedbackLabel!: Label;
   private selectedNameLabel!: Label;
   private selectedDetailLabel!: Label;
+  private resultPanel!: Node;
+  private resultTitleLabel!: Label;
+  private resultDetailLabel!: Label;
   private upgradeLabels: Label[] = [];
   private eventPanel!: Node;
   private eventTitleLabel!: Label;
@@ -123,6 +128,8 @@ export class GameBootstrap extends Component {
     this.resourceLabel = this.createLabel('ResourceLabel', topBar, '', 28, new Vec3(-130, 22, 0));
     this.riskLabel = this.createLabel('RiskLabel', topBar, '', 28, new Vec3(130, 22, 0));
     this.progressLabel = this.createLabel('ProgressLabel', topBar, '', 28, new Vec3(380, 22, 0));
+    this.feedbackLabel = this.createLabel('FeedbackLabel', root, '', 24, new Vec3(0, -300, 0));
+    this.feedbackLabel.getComponent(UITransform)?.setContentSize(920, 48);
 
     const mapLayer = new Node('MapLayer');
     root.addChild(mapLayer);
@@ -168,6 +175,7 @@ export class GameBootstrap extends Component {
     });
 
     this.buildEventPanel(root);
+    this.buildResultPanel(root);
   }
 
   private createRegionCard(parent: Node, region: RegionConfig, index: number): RegionCard {
@@ -220,21 +228,53 @@ export class GameBootstrap extends Component {
     });
   }
 
+  private buildResultPanel(root: Node): void {
+    this.resultPanel = this.createPanel('ResultPanel', root, 820, 360, new Vec3(0, 80, 0), new Color(17, 24, 39, 252));
+    this.resultPanel.active = false;
+    this.resultTitleLabel = this.createLabel('ResultTitleLabel', this.resultPanel, '', 42, new Vec3(0, 90, 0));
+    this.resultDetailLabel = this.createLabel('ResultDetailLabel', this.resultPanel, '', 25, new Vec3(0, 15, 0));
+    this.resultDetailLabel.getComponent(UITransform)?.setContentSize(680, 120);
+    this.resultDetailLabel.overflow = Label.Overflow.RESIZE_HEIGHT;
+  }
+
   private handleRestore(): void {
-    restoreRegion(this.state, this.regionConfig, this.upgradeConfig, this.selectedRegionId);
+    if (this.isGameFinished()) {
+      return;
+    }
+
+    const selectedRegion = this.getSelectedRegion();
+    const success = restoreRegion(this.state, this.regionConfig, this.upgradeConfig, this.selectedRegionId);
+    this.feedbackLabel.string = success
+      ? `${selectedRegion?.displayName ?? '区域'}修复推进`
+      : this.getActionBlockedText('修复', selectedRegion);
     this.afterStateChange();
   }
 
   private handleControl(): void {
-    controlRegion(this.state, this.regionConfig, this.selectedRegionId);
+    if (this.isGameFinished()) {
+      return;
+    }
+
+    const selectedRegion = this.getSelectedRegion();
+    const success = controlRegion(this.state, this.regionConfig, this.selectedRegionId);
+    this.feedbackLabel.string = success
+      ? `${selectedRegion?.displayName ?? '区域'}进入受控状态`
+      : this.getActionBlockedText('隔离', selectedRegion);
     this.afterStateChange();
   }
 
   private handleAdvanceDay(): void {
+    if (this.isGameFinished()) {
+      return;
+    }
+
     const result = advanceDay(this.state, this.regionConfig, this.upgradeConfig, this.eventConfig);
+    this.feedbackLabel.string = result.resourceGain > 0
+      ? `今日回收明烬 ${result.resourceGain}`
+      : '今日没有稳定收益';
     this.afterStateChange();
 
-    if (!result.eventId) {
+    if (!result.eventId || this.isGameFinished()) {
       return;
     }
 
@@ -254,18 +294,37 @@ export class GameBootstrap extends Component {
   }
 
   private handleBuyUpgrade(upgradeId: string): void {
-    buyUpgrade(this.state, this.upgradeConfig, upgradeId);
+    if (this.isGameFinished()) {
+      return;
+    }
+
+    const upgrade = this.upgradeConfig.upgrades.find((item) => item.id === upgradeId);
+    const success = buyUpgrade(this.state, this.upgradeConfig, upgradeId);
+    this.feedbackLabel.string = success
+      ? `${upgrade?.displayName ?? '能力'}已升级`
+      : this.getUpgradeBlockedText(upgradeId);
     this.afterStateChange();
   }
 
   private handleEventChoice(index: number): void {
+    if (this.isGameFinished()) {
+      return;
+    }
+
     const choice = this.pendingEventChoices[index];
 
     if (!choice) {
       return;
     }
 
-    applyEventChoice(this.state, choice);
+    const success = applyEventChoice(this.state, choice);
+    this.feedbackLabel.string = success ? `已选择：${choice.label}` : '明烬不足，无法处理该事件';
+
+    if (!success) {
+      this.refreshViews();
+      return;
+    }
+
     this.pendingEventChoices = [];
     this.eventPanel.active = false;
     this.afterStateChange();
@@ -274,6 +333,7 @@ export class GameBootstrap extends Component {
   private afterStateChange(shouldSave = true): void {
     recalculateGlobalRisk(this.state, this.regionConfig);
     recalculateRestoreProgress(this.state, this.regionConfig);
+    updateGameResult(this.state, this.regionConfig);
 
     if (shouldSave) {
       saveGame(localStorageAdapter, this.state);
@@ -304,6 +364,7 @@ export class GameBootstrap extends Component {
     const selectedRuntime = selectedRegion ? this.state.regionStates[selectedRegion.id] : undefined;
     this.refreshSelectedRegion(selectedRegion, selectedRuntime);
     this.refreshUpgradeLabels();
+    this.refreshResultPanel();
   }
 
   private refreshSelectedRegion(
@@ -319,7 +380,8 @@ export class GameBootstrap extends Component {
 
     this.selectedDetailLabel.string =
       `${STATE_LABELS[selectedRuntime.state]} | 人口 ${selectedRegion.population} | ` +
-      `修复 ${Math.round(selectedRuntime.restoreProgress * 100)}% | 产出 ${selectedRegion.resourceYield}`;
+      `修复 ${Math.round(selectedRuntime.restoreProgress * 100)}% | 产出 ${selectedRegion.resourceYield}\n` +
+      `修复成本 ${this.getRestoreCost(selectedRegion)} | 隔离成本 ${this.getControlCost(selectedRegion)}`;
   }
 
   private refreshUpgradeLabels(): void {
@@ -331,8 +393,77 @@ export class GameBootstrap extends Component {
       }
 
       const level = this.state.upgradeLevels[upgrade.id] ?? 0;
-      label.string = `${upgrade.displayName}\nLv.${level}/${upgrade.maxLevel}`;
+      const cost = level >= upgrade.maxLevel
+        ? '已满'
+        : `${getUpgradeCost(upgrade.baseCost, upgrade.costGrowth, level)} 明烬`;
+      label.string = `${upgrade.displayName}\nLv.${level}/${upgrade.maxLevel}  ${cost}`;
     });
+  }
+
+  private refreshResultPanel(): void {
+    if (!this.state.result || this.state.result === 'playing') {
+      this.resultPanel.active = false;
+      return;
+    }
+
+    this.resultPanel.active = true;
+
+    if (this.state.result === 'victory') {
+      this.resultTitleLabel.string = '归明完成';
+      this.resultDetailLabel.string = `第 ${this.state.day} 天，全部区域恢复到稳定秩序。`;
+      return;
+    }
+
+    this.resultTitleLabel.string = '静界失守';
+    this.resultDetailLabel.string = `第 ${this.state.day} 天，全局风险达到 ${Math.round(this.state.globalRisk * 100)}%。`;
+  }
+
+  private getSelectedRegion(): RegionConfig | undefined {
+    return this.regionConfig.regions.find((region) => region.id === this.selectedRegionId);
+  }
+
+  private getActionBlockedText(actionName: string, selectedRegion: RegionConfig | undefined): string {
+    if (!selectedRegion) {
+      return `未选择区域，无法${actionName}`;
+    }
+
+    const runtime = this.state.regionStates[selectedRegion.id];
+    if (!runtime || runtime.state === 'unaffected') {
+      return `${selectedRegion.displayName}已经稳定`;
+    }
+
+    const cost = actionName === '修复' ? this.getRestoreCost(selectedRegion) : this.getControlCost(selectedRegion);
+    if (this.state.resources < cost) {
+      return `明烬不足，需要 ${cost}`;
+    }
+
+    return `${actionName}未生效`;
+  }
+
+  private getUpgradeBlockedText(upgradeId: string): string {
+    const upgrade = this.upgradeConfig.upgrades.find((item) => item.id === upgradeId);
+    if (!upgrade) {
+      return '能力不存在';
+    }
+
+    const level = this.state.upgradeLevels[upgrade.id] ?? 0;
+    if (level >= upgrade.maxLevel) {
+      return `${upgrade.displayName}已满级`;
+    }
+
+    return `明烬不足，需要 ${getUpgradeCost(upgrade.baseCost, upgrade.costGrowth, level)}`;
+  }
+
+  private getRestoreCost(region: RegionConfig): number {
+    return Math.ceil(12 + region.restoreDifficulty * 25);
+  }
+
+  private getControlCost(region: RegionConfig): number {
+    return Math.ceil(8 + region.restoreDifficulty * 18);
+  }
+
+  private isGameFinished(): boolean {
+    return Boolean(this.state.result && this.state.result !== 'playing');
   }
 
   private createPanel(name: string, parent: Node, width: number, height: number, position: Vec3, color: Color): Node {

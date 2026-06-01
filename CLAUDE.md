@@ -38,6 +38,7 @@
 - `docs/wechat-build.md`：微信小游戏构建说明。
 - `docs/test-checklist.md`：测试清单。
 - `docs/cocos-scene-setup.md`：Cocos 场景节点挂载说明。
+- `docs/dev-workflow.md`：本地开发、验证、提交流程。
 
 脚本子目录：
 
