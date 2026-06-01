@@ -57,6 +57,14 @@ node scripts/verify-simulation.mjs
 
 该脚本会临时编译 `assets/scripts/sim/runLocalSimulation.ts` 到 `temp/simulation-check`，然后验证升级、修复、隔离、交通管控、事件选择、推进回合、胜利和失败场景。`temp/` 是忽略目录，脚本输出不需要提交。
 
+验证 Cocos 场景接入：
+
+```powershell
+node scripts/verify-scene-wiring.mjs
+```
+
+该脚本会检查 `assets/scenes/main.scene` 是否保留 `1080x1920` 竖屏 Canvas、`Canvas` 是否挂载 `GameBootstrap`，以及 `regionConfigAsset`、`upgradeConfigAsset`、`eventConfigAsset` 是否和对应 `.meta` 的 UUID 一致。
+
 ## Cocos 预览
 
 1. 打开 `C:\codex33\tools\CocosCreator-3.8.8\CocosCreator.exe`。

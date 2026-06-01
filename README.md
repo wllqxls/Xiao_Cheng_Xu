@@ -97,6 +97,12 @@ git diff --check
 node scripts/verify-simulation.mjs
 ```
 
+验证 Cocos 场景接入：
+
+```powershell
+node scripts/verify-scene-wiring.mjs
+```
+
 ## 文档入口
 
 - [项目规则](CLAUDE.md)
