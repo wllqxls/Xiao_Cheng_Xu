@@ -13,7 +13,7 @@ import {
   sys,
 } from 'cc';
 import { createInitialGameState } from '../state/createInitialGameState';
-import { loadGame, saveGame } from '../save/SaveSystem';
+import { clearSave, loadGame, saveGame } from '../save/SaveSystem';
 import { advanceDay } from '../systems/GameLoopSystem';
 import { applyEventChoice } from '../systems/EventSystem';
 import {
@@ -158,6 +158,7 @@ export class GameBootstrap extends Component {
     this.createButton('RestoreButton', bottomPanel, '修复', new Vec3(-320, 40, 0), () => this.handleRestore());
     this.createButton('ControlButton', bottomPanel, '隔离', new Vec3(0, 40, 0), () => this.handleControl());
     this.createButton('AdvanceDayButton', bottomPanel, '推进', new Vec3(320, 40, 0), () => this.handleAdvanceDay());
+    this.createButton('RestartButton', bottomPanel, '重开', new Vec3(380, 185, 0), () => this.handleRestart(), 170, 58);
 
     this.upgradeLabels = this.upgradeConfig.upgrades.map((upgrade, index) => {
       const x = -320 + index * 320;
@@ -237,6 +238,7 @@ export class GameBootstrap extends Component {
     this.resultDetailLabel = this.createLabel('ResultDetailLabel', this.resultPanel, '', 25, new Vec3(0, 15, 0));
     this.resultDetailLabel.getComponent(UITransform)?.setContentSize(680, 120);
     this.resultDetailLabel.overflow = Label.Overflow.RESIZE_HEIGHT;
+    this.createButton('ResultRestartButton', this.resultPanel, '重新开始', new Vec3(0, -115, 0), () => this.handleRestart(), 300, 72);
   }
 
   private handleRestore(): void {
@@ -305,6 +307,21 @@ export class GameBootstrap extends Component {
     this.feedbackLabel.string = success
       ? `${upgrade?.displayName ?? '能力'}已升级`
       : this.getUpgradeBlockedText(upgradeId);
+    this.afterStateChange();
+  }
+
+  private handleRestart(): void {
+    clearSave(localStorageAdapter);
+    this.state = createInitialGameState({
+      regions: this.regionConfig,
+      upgrades: this.upgradeConfig,
+      events: this.eventConfig,
+    });
+    this.selectedRegionId = this.regionConfig.regions[0]?.id ?? '';
+    this.pendingEventChoices = [];
+    this.eventPanel.active = false;
+    this.resultPanel.active = false;
+    this.feedbackLabel.string = '新一轮修复任务已开始';
     this.afterStateChange();
   }
 
@@ -460,7 +477,13 @@ export class GameBootstrap extends Component {
   }
 
   private isGameFinished(): boolean {
-    return Boolean(this.state.result && this.state.result !== 'playing');
+    const finished = Boolean(this.state.result && this.state.result !== 'playing');
+
+    if (finished) {
+      this.feedbackLabel.string = '本局已结束，可点击重开';
+    }
+
+    return finished;
   }
 
   private createPanel(name: string, parent: Node, width: number, height: number, position: Vec3, color: Color): Node {
