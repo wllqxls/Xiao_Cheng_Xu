@@ -58,6 +58,13 @@ const STATE_LABELS: Record<RegionState, string> = {
   clearing: '清除中',
 };
 
+const TUTORIAL_HINTS: Array<{ id: string; text: string }> = [
+  { id: 'select-region', text: '引导：点击地图区域查看状态' },
+  { id: 'first-action', text: '引导：选择修复、隔离或升级能力' },
+  { id: 'advance-day', text: '引导：推进一天，观察风险和资源变化' },
+  { id: 'resolve-event', text: '引导：突发事件出现时，选择一种处理方案' },
+];
+
 interface RegionCard {
   regionId: string;
   node: Node;
@@ -114,6 +121,7 @@ export class GameBootstrap extends Component {
 
     this.buildUi();
     this.afterStateChange(false);
+    this.showTutorialHintIfNeeded();
   }
 
   private loadConfigs(): void {
@@ -203,7 +211,9 @@ export class GameBootstrap extends Component {
 
     node.on(Node.EventType.TOUCH_END, () => {
       this.selectedRegionId = region.id;
+      this.completeTutorialStep('select-region');
       this.refreshViews();
+      this.showTutorialHintIfNeeded();
     });
 
     return {
@@ -266,9 +276,13 @@ export class GameBootstrap extends Component {
 
     const selectedRegion = this.getSelectedRegion();
     const success = restoreRegion(this.state, this.regionConfig, this.upgradeConfig, this.selectedRegionId);
+    if (success) {
+      this.completeTutorialStep('first-action');
+    }
     this.feedbackLabel.string = success
       ? `${selectedRegion?.displayName ?? '区域'}修复推进`
       : this.getActionBlockedText('修复', selectedRegion);
+    this.appendTutorialHintToFeedback();
     this.afterStateChange();
   }
 
@@ -279,9 +293,13 @@ export class GameBootstrap extends Component {
 
     const selectedRegion = this.getSelectedRegion();
     const success = controlRegion(this.state, this.regionConfig, this.selectedRegionId);
+    if (success) {
+      this.completeTutorialStep('first-action');
+    }
     this.feedbackLabel.string = success
       ? `${selectedRegion?.displayName ?? '区域'}进入受控状态`
       : this.getActionBlockedText('隔离', selectedRegion);
+    this.appendTutorialHintToFeedback();
     this.afterStateChange();
   }
 
@@ -291,9 +309,11 @@ export class GameBootstrap extends Component {
     }
 
     const result = advanceDay(this.state, this.regionConfig, this.upgradeConfig, this.eventConfig);
+    this.completeTutorialStep('advance-day');
     this.feedbackLabel.string = result.resourceGain > 0
       ? `今日回收明烬 ${result.resourceGain}`
       : '今日没有稳定收益';
+    this.appendTutorialHintToFeedback();
     this.afterStateChange();
 
     if (!result.eventId || this.isGameFinished()) {
@@ -322,9 +342,13 @@ export class GameBootstrap extends Component {
 
     const upgrade = this.upgradeConfig.upgrades.find((item) => item.id === upgradeId);
     const success = buyUpgrade(this.state, this.upgradeConfig, upgradeId);
+    if (success) {
+      this.completeTutorialStep('first-action');
+    }
     this.feedbackLabel.string = success
       ? `${upgrade?.displayName ?? '能力'}已升级`
       : this.getUpgradeBlockedText(upgradeId);
+    this.appendTutorialHintToFeedback();
     this.afterStateChange();
   }
 
@@ -383,7 +407,11 @@ export class GameBootstrap extends Component {
     }
 
     const success = applyEventChoice(this.state, choice);
+    if (success) {
+      this.completeTutorialStep('resolve-event');
+    }
     this.feedbackLabel.string = success ? `已选择：${choice.label}` : '明烬不足，无法处理该事件';
+    this.appendTutorialHintToFeedback();
 
     if (!success) {
       this.refreshViews();
@@ -542,6 +570,33 @@ export class GameBootstrap extends Component {
     }
 
     return finished;
+  }
+
+  private completeTutorialStep(stepId: string): void {
+    if (this.state.completedTutorialSteps.indexOf(stepId) >= 0) {
+      return;
+    }
+
+    this.state.completedTutorialSteps.push(stepId);
+    saveGame(localStorageAdapter, this.state);
+  }
+
+  private showTutorialHintIfNeeded(): void {
+    const hint = this.getNextTutorialHint();
+    if (hint) {
+      this.feedbackLabel.string = hint;
+    }
+  }
+
+  private appendTutorialHintToFeedback(): void {
+    const hint = this.getNextTutorialHint();
+    if (hint && this.feedbackLabel.string.length < 36) {
+      this.feedbackLabel.string = `${this.feedbackLabel.string}；${hint}`;
+    }
+  }
+
+  private getNextTutorialHint(): string {
+    return TUTORIAL_HINTS.find((hint) => this.state.completedTutorialSteps.indexOf(hint.id) < 0)?.text ?? '';
   }
 
   private getNextVolumeStep(currentVolume: number): number {
