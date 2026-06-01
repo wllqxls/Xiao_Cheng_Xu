@@ -109,6 +109,30 @@ Start-Process -FilePath 'C:\Program Files (x86)\Tencent\微信web开发者工具
 - 微信开发者工具可打开构建目录并进入游戏主界面。
 - 开发者工具控制台出现的 `webapi_getwxaasyncsecinfo:fail` 属于工具/微信 SDK 侧报错；当前没有看到项目脚本抛出的 `GameBootstrap` 初始化错误。
 
+## 引擎模块裁剪
+
+当前原型只依赖 2D UI、Graphics、Audio、WebGL 和基础触控，不使用 Spine、DragonBones、Video、WebView、TiledMap、Particle、Physics、Tween、Mask、RichText 等模块。
+
+`settings/v2/packages/engine.json` 中保留的核心模块：
+
+- `2d`
+- `affine-transform`
+- `audio`
+- `base`
+- `custom-pipeline`
+- `gfx-webgl`
+- `graphics`
+- `intersection-2d`
+- `ui`
+
+裁剪后验证结果：
+
+- Cocos 命令行构建返回 `36`。
+- `build/wechatgame` 文件数约 24 个。
+- 包体从约 `5.98 MB` 降到约 `3.91 MB`。
+- 微信开发者工具可打开构建目录并进入游戏主界面。
+- 画布内按钮不是原生可访问控件，自动化工具难以稳定点选；交互点击优先用 Cocos 预览、微信开发者工具手动点击或真机验证。
+
 ## 包体控制
 
 - 首包只放 MVP 必需资源。
