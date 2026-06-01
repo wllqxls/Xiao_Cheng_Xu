@@ -24,7 +24,7 @@ export function restoreRegion(
   }
 
   const effects = getCombinedUpgradeEffects(state, upgradeConfig);
-  const cost = Math.ceil(12 + region.restoreDifficulty * 25);
+  const cost = getRestoreCost(region.restoreDifficulty);
 
   if (state.resources < cost) {
     return false;
@@ -54,7 +54,7 @@ export function controlRegion(
     return false;
   }
 
-  const cost = Math.ceil(8 + region.restoreDifficulty * 18);
+  const cost = getControlCost(region.restoreDifficulty);
 
   if (state.resources < cost) {
     return false;
@@ -169,4 +169,12 @@ export function recalculateRestoreProgress(
 
   state.globalRestoreProgress = restored / regionConfig.regions.length;
   return state.globalRestoreProgress;
+}
+
+export function getRestoreCost(restoreDifficulty: number): number {
+  return Math.ceil(12 + restoreDifficulty * 25);
+}
+
+export function getControlCost(restoreDifficulty: number): number {
+  return Math.ceil(8 + restoreDifficulty * 18);
 }

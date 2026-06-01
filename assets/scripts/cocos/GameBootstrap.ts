@@ -18,6 +18,8 @@ import { advanceDay } from '../systems/GameLoopSystem';
 import { applyEventChoice } from '../systems/EventSystem';
 import {
   controlRegion,
+  getControlCost,
+  getRestoreCost,
   recalculateGlobalRisk,
   recalculateRestoreProgress,
   restoreRegion,
@@ -381,7 +383,8 @@ export class GameBootstrap extends Component {
     this.selectedDetailLabel.string =
       `${STATE_LABELS[selectedRuntime.state]} | 人口 ${selectedRegion.population} | ` +
       `修复 ${Math.round(selectedRuntime.restoreProgress * 100)}% | 产出 ${selectedRegion.resourceYield}\n` +
-      `修复成本 ${this.getRestoreCost(selectedRegion)} | 隔离成本 ${this.getControlCost(selectedRegion)}`;
+      `修复成本 ${getRestoreCost(selectedRegion.restoreDifficulty)} | ` +
+      `隔离成本 ${getControlCost(selectedRegion.restoreDifficulty)}`;
   }
 
   private refreshUpgradeLabels(): void {
@@ -432,7 +435,9 @@ export class GameBootstrap extends Component {
       return `${selectedRegion.displayName}已经稳定`;
     }
 
-    const cost = actionName === '修复' ? this.getRestoreCost(selectedRegion) : this.getControlCost(selectedRegion);
+    const cost = actionName === '修复'
+      ? getRestoreCost(selectedRegion.restoreDifficulty)
+      : getControlCost(selectedRegion.restoreDifficulty);
     if (this.state.resources < cost) {
       return `明烬不足，需要 ${cost}`;
     }
@@ -452,14 +457,6 @@ export class GameBootstrap extends Component {
     }
 
     return `明烬不足，需要 ${getUpgradeCost(upgrade.baseCost, upgrade.costGrowth, level)}`;
-  }
-
-  private getRestoreCost(region: RegionConfig): number {
-    return Math.ceil(12 + region.restoreDifficulty * 25);
-  }
-
-  private getControlCost(region: RegionConfig): number {
-    return Math.ceil(8 + region.restoreDifficulty * 18);
   }
 
   private isGameFinished(): boolean {
