@@ -168,7 +168,7 @@ export class GameBootstrap extends Component {
 
   private buildUi(): void {
     const root = this.node;
-    root.removeAllChildren();
+    this.clearGeneratedUi(root);
 
     const topBar = this.createPanel('TopBar', root, 1040, 120, new Vec3(0, 850, 0), new Color(31, 43, 59, 235));
     this.dayLabel = this.createLabel('DayLabel', topBar, '', 28, new Vec3(-390, 22, 0));
@@ -713,6 +713,15 @@ export class GameBootstrap extends Component {
     this.paintPanel(graphics, width, height, color);
 
     return node;
+  }
+
+  private clearGeneratedUi(root: Node): void {
+    for (let index = root.children.length - 1; index >= 0; index -= 1) {
+      const child = root.children[index];
+      if (child.name !== 'Camera') {
+        child.destroy();
+      }
+    }
   }
 
   private paintPanel(graphics: Graphics, width: number, height: number, color: Color): void {
