@@ -13,6 +13,7 @@
 
 - Cocos Creator 3.8.x。
 - 微信开发者工具。
+- Cocos Developer 账号登录状态。
 
 注意：安装全局依赖或修改系统配置属于红线，执行前需要用户确认。
 
@@ -23,6 +24,7 @@
 - 微信开发者工具 CLI 路径：`C:\Program Files (x86)\Tencent\微信web开发者工具\cli.bat`。
 - 当前项目已被 Cocos Creator 3.8.8 识别，并生成了 `library`、`temp` 和资源 `.meta` 文件。
 - 当前主场景：`assets/scenes/main.scene`。
+- 如果 Cocos Creator 打开后停在 `Cocos Developer Login`，需要先手动登录账号，再执行预览或构建。
 
 ## Cocos 项目导入
 
@@ -65,6 +67,25 @@
 5. 点击预览。
 
 当前 `GameBootstrap` 会在运行时自动创建占位地图、顶部数据栏、底部操作面板和事件弹窗。三个 JSON 配置已绑定到场景中的 `GameBootstrap`。
+
+## 命令行构建
+
+Cocos Creator 3.8 支持命令行构建，但仍需要可交互的 GUI 环境。Windows 可尝试：
+
+```powershell
+$logPath = 'C:\codex33\Wen_Yi\temp\wechat-build-command.log'
+& 'C:\codex33\tools\CocosCreator-3.8.8\CocosCreator.exe' --project 'C:\codex33\Wen_Yi' --build "platform=wechatgame;debug=true;logDest=$logPath"
+```
+
+官方退出码：
+
+- `32`：构建参数不合法。
+- `34`：构建过程出错，查看构建日志。
+- `36`：构建成功。
+
+如果命令返回后没有生成 `build/wechatgame`，优先回到 Cocos Creator 的构建发布面板手动构建，并从面板导出构建配置后再改用 `configPath` 自动构建。
+
+当前机器已尝试命令行构建；未生成 `build/wechatgame`。优先处理 Cocos Developer 登录状态，再从构建发布面板手动执行一次微信小游戏构建。
 
 ## 包体控制
 
