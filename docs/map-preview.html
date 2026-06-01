@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>归明计划地图预览</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      background: #10202a;
+      color: #eef3f2;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #10202a;
+    }
+
+    .phone {
+      width: min(420px, 100vw);
+      aspect-ratio: 9 / 16;
+      background: #172534;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid rgba(225, 241, 235, 0.24);
+    }
+
+    .topbar {
+      height: 7.5%;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      align-items: center;
+      padding: 0 14px;
+      gap: 8px;
+      background: rgba(22, 34, 47, 0.96);
+      font-size: 13px;
+      color: #eff7f5;
+    }
+
+    .map {
+      position: relative;
+      height: 66.5%;
+      margin: 10px;
+      border-radius: 14px;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 43% 47%, rgba(103, 160, 121, 0.78) 0 24%, transparent 25%),
+        radial-gradient(ellipse at 62% 66%, rgba(105, 154, 119, 0.72) 0 18%, transparent 19%),
+        radial-gradient(ellipse at 73% 33%, rgba(95, 145, 109, 0.72) 0 12%, transparent 13%),
+        radial-gradient(ellipse at 23% 77%, rgba(111, 167, 130, 0.66) 0 9%, transparent 10%),
+        repeating-radial-gradient(ellipse at center, rgba(161, 220, 219, 0.12) 0 1px, transparent 2px 34px),
+        linear-gradient(160deg, #1b5573, #244f64 46%, #18394f);
+    }
+
+    .map::before {
+      content: "归明海图";
+      position: absolute;
+      top: 12px;
+      left: 16px;
+      font-size: 18px;
+      color: rgba(245, 250, 244, 0.9);
+    }
+
+    svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .route {
+      fill: none;
+      stroke: rgba(176, 232, 235, 0.45);
+      stroke-width: 2;
+      stroke-dasharray: 5 5;
+    }
+
+    .route.risk {
+      stroke: rgba(235, 83, 68, 0.45);
+      stroke-width: 1.4;
+      stroke-dasharray: 2 7;
+    }
+
+    .region {
+      position: absolute;
+      width: calc(var(--size) * 104px);
+      min-height: calc(var(--size) * 42px);
+      left: calc(var(--x) * 100%);
+      top: calc((1 - var(--y)) * 100%);
+      translate: -50% -50%;
+      border-radius: 16px;
+      padding: 7px 8px 6px;
+      box-sizing: border-box;
+      border: 1px solid rgba(238, 246, 239, 0.68);
+      background: color-mix(in srgb, var(--state) 78%, #203141);
+      box-shadow: 0 10px 18px rgba(8, 16, 24, 0.18);
+      font-size: 11px;
+      line-height: 1.15;
+    }
+
+    .region.selected {
+      outline: 2px solid rgba(255, 242, 176, 0.9);
+    }
+
+    .region.controlled-route::after {
+      content: "";
+      position: absolute;
+      right: 10px;
+      top: 8px;
+      width: 32px;
+      height: 14px;
+      border-radius: 999px;
+      background: rgba(70, 210, 220, 0.82);
+      box-shadow: inset 0 0 0 1px rgba(235, 252, 252, 0.8);
+    }
+
+    .mark {
+      display: inline-grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      margin-right: 4px;
+      border-radius: 50%;
+      background: rgba(15, 29, 35, 0.3);
+      font-weight: 700;
+    }
+
+    .name {
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .meta {
+      margin-top: 3px;
+      color: rgba(250, 255, 247, 0.82);
+      white-space: nowrap;
+    }
+
+    .corruption {
+      position: absolute;
+      inset: 5px;
+      border-radius: 12px;
+      background:
+        radial-gradient(circle at 26% 45%, rgba(255, 74, 64, 0.9) 0 3px, transparent 4px),
+        radial-gradient(circle at 56% 30%, rgba(255, 74, 64, 0.75) 0 4px, transparent 5px),
+        radial-gradient(circle at 72% 64%, rgba(255, 74, 64, 0.76) 0 3px, transparent 4px),
+        rgba(171, 40, 46, var(--corrupt));
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    .carrier {
+      position: absolute;
+      font-size: 16px;
+      color: #ffd39d;
+      text-shadow: 0 0 8px rgba(235, 64, 58, 0.75);
+      pointer-events: none;
+    }
+
+    .bottom {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 24%;
+      padding: 12px 14px;
+      box-sizing: border-box;
+      background: rgba(19, 30, 42, 0.98);
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 8px;
+    }
+
+    .detail {
+      font-size: 13px;
+      color: rgba(241, 247, 246, 0.86);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      background: #3b82b4;
+      color: #f6fbff;
+      font-size: 14px;
+      min-height: 40px;
+    }
+
+    .upgrades {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .upgrade {
+      border-radius: 8px;
+      background: rgba(77, 107, 133, 0.72);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      font-size: 12px;
+      color: #eff7f5;
+    }
+  </style>
+</head>
+<body>
+  <main class="phone">
+    <section class="topbar">
+      <span>第 18 天</span>
+      <span>明烬 42</span>
+      <span>风险 36%</span>
+      <span>恢复 40%</span>
+    </section>
+
+    <section class="map" aria-label="竖版海陆地图预览">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+        <path class="route" d="M22 26 Q34 14 67 22"></path>
+        <path class="route risk" d="M22 26 Q34 11 67 19"></path>
+        <path class="route" d="M22 26 Q28 48 47 33"></path>
+        <path class="route" d="M52 50 Q70 46 77 39"></path>
+        <path class="route risk" d="M62 83 Q75 64 82 72"></path>
+        <path class="route" d="M42 67 Q55 80 62 83"></path>
+      </svg>
+
+      <div class="carrier" style="left: 60%; top: 18%;">机</div>
+      <div class="carrier" style="left: 76%; top: 68%;">船</div>
+      <div class="carrier" style="left: 30%; top: 46%;">船</div>
+
+      <article class="region selected" style="--x: .22; --y: .74; --size: 1.15; --state: #c54652; --corrupt: .72;">
+        <span class="mark">港</span><span class="name">灰港</span>
+        <div class="meta">严重 港口/航线</div>
+        <i class="corruption"></i>
+      </article>
+      <article class="region" style="--x: .47; --y: .67; --size: 1; --state: #db7749; --corrupt: .38;">
+        <span class="mark">森</span><span class="name">苔环区</span>
+        <div class="meta">扩散 森林</div>
+        <i class="corruption"></i>
+      </article>
+      <article class="region" style="--x: .67; --y: .78; --size: .92; --state: #dbbc52; --corrupt: .12;">
+        <span class="mark">山</span><span class="name">北闸</span>
+        <div class="meta">潜伏 山地</div>
+        <i class="corruption"></i>
+      </article>
+      <article class="region" style="--x: .52; --y: .5; --size: 1.28; --state: #4db88e; --corrupt: 0;">
+        <span class="mark">城</span><span class="name">镜庭</span>
+        <div class="meta">稳定 核心城</div>
+      </article>
+      <article class="region" style="--x: .72; --y: .44; --size: .98; --state: #dbbc52; --corrupt: .1;">
+        <span class="mark">工</span><span class="name">银坝</span>
+        <div class="meta">潜伏 工业</div>
+        <i class="corruption"></i>
+      </article>
+      <article class="region" style="--x: .42; --y: .33; --size: 1.1; --state: #db7749; --corrupt: .42;">
+        <span class="mark">田</span><span class="name">低原</span>
+        <div class="meta">扩散 农田</div>
+        <i class="corruption"></i>
+      </article>
+      <article class="region controlled-route" style="--x: .25; --y: .25; --size: .9; --state: #5b9ddb; --corrupt: .08;">
+        <span class="mark">机</span><span class="name">赤轨</span>
+        <div class="meta">受控 机场 管控</div>
+        <i class="corruption"></i>
+      </article>
+      <article class="region" style="--x: .62; --y: .17; --size: .96; --state: #4db88e; --corrupt: 0;">
+        <span class="mark">研</span><span class="name">风档馆</span>
+        <div class="meta">稳定 研究站</div>
+      </article>
+      <article class="region" style="--x: .82; --y: .28; --size: .82; --state: #dbbc52; --corrupt: .13;">
+        <span class="mark">岛</span><span class="name">蓝礁</span>
+        <div class="meta">潜伏 群岛</div>
+        <i class="corruption"></i>
+      </article>
+      <article class="region" style="--x: .77; --y: .61; --size: 1; --state: #4db88e; --corrupt: 0;">
+        <span class="mark">科</span><span class="name">白塔院</span>
+        <div class="meta">稳定 科技院</div>
+      </article>
+    </section>
+
+    <section class="bottom">
+      <strong>灰港</strong>
+      <div class="detail">严重 | 港口城 | 工业化 | 人口 16万<br>交通 港口/航线/道路 | 管控 0天 | 产出 4</div>
+      <div class="actions">
+        <button>修复</button>
+        <button>隔离</button>
+        <button>管控</button>
+        <button>推进</button>
+      </div>
+      <div class="upgrades">
+        <div class="upgrade">修复效率<br>Lv.1</div>
+        <div class="upgrade">航线抑制<br>Lv.0</div>
+        <div class="upgrade">后勤补给<br>Lv.1</div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

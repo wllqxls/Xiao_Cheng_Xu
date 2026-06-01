@@ -49,6 +49,14 @@ if ($projectErrors) { $projectErrors; exit 1 } else { 'OK no project TypeScript 
 git diff --check
 ```
 
+验证本地玩法闭环：
+
+```powershell
+node scripts/verify-simulation.mjs
+```
+
+该脚本会临时编译 `assets/scripts/sim/runLocalSimulation.ts` 到 `temp/simulation-check`，然后验证升级、修复、隔离、交通管控、事件选择、推进回合、胜利和失败场景。`temp/` 是忽略目录，脚本输出不需要提交。
+
 ## Cocos 预览
 
 1. 打开 `C:\codex33\tools\CocosCreator-3.8.8\CocosCreator.exe`。

@@ -1,14 +1,20 @@
 # Wen_Yi
 
-面向手机竖屏的微信小游戏原型，技术栈为 Cocos Creator 3.8.x + TypeScript。当前方向是原创修复策略模拟：玩家在被异象侵蚀后的区域地图上修复、隔离、升级能力、处理事件，并通过本地存档继续一局游戏。
+面向手机竖屏的微信小游戏原型，技术栈为 Cocos Creator 3.8.x + TypeScript。当前方向是原创修复策略模拟：玩家在被异象侵蚀后的海陆地图上修复陆地区域、管控港口/机场/航线、升级能力、处理事件，并通过本地存档继续一局游戏。
 
 ## 当前状态
 
 - Cocos Creator 3.8.8 项目已可被编辑器识别。
 - 主场景为 `assets/scenes/main.scene`。
 - `Canvas` 挂载 `GameBootstrap`，运行时自动生成占位地图、顶部数据栏、底部操作区、事件面板、设置面板和胜负面板。
-- 已接入区域状态、资源、升级、随机事件、胜负判定、本地存档、重开、音量/触感设置、音频播放入口和轻教程提示。
+- 已接入 10 个多元区域的配置，包括港口城市、森林、山地、农田、工业区、核心城、机场枢纽、群岛、科技院和研究站。
+- 运行时地图已加入海洋背景、陆地轮廓、波纹、航线、飞机/船只标记、区域类别标识和红点侵蚀层。
+- 已接入区域状态、交通管控、资源、升级、随机事件、胜负判定、本地存档、重开、音量/触感设置、音频播放入口和轻教程提示。
 - 微信小游戏构建流程仍需在 Cocos Creator 和微信开发者工具中完成实际构建验证。
+
+## 地图与美术方向
+
+主方向是“手绘航海世界地图 + 桌游式区域规则”。地图要有海洋、陆地、岛链、城市、森林、农田、工业区、港口、机场和航线。侵蚀主要发生在陆地：先出现红点，再形成红斑，最后变成区域半透明红色覆盖。飞机和船只可以是简化图标，但要用轻微红色尾迹提示传播风险。
 
 ## 目录
 
@@ -41,6 +47,16 @@ assets/scenes/main.scene
 ```
 
 4. 点击预览，检查区域点击、修复、隔离、推进、升级、事件、设置、重开和存档。
+
+## 地图预览
+
+当前提供一个不依赖 Cocos 的静态海陆地图预览页：
+
+```text
+docs/map-preview.html
+```
+
+它用于快速检查竖屏构图、区域类型、侵蚀显示、航线和底部操作区。真实玩法仍以 Cocos 场景为准。
 
 ## 常用验证
 
@@ -75,12 +91,21 @@ if ($projectErrors) { $projectErrors; exit 1 } else { 'OK no project TypeScript 
 git diff --check
 ```
 
+验证本地玩法闭环：
+
+```powershell
+node scripts/verify-simulation.mjs
+```
+
 ## 文档入口
 
 - [项目规则](CLAUDE.md)
 - [游戏设计](docs/game-design.md)
 - [MVP 范围](docs/mvp-scope.md)
 - [配置结构](docs/config-schema.md)
+- [AI 美术流程](docs/art-pipeline.md)
+- [地图静态预览](docs/map-preview.html)
 - [Cocos 场景接入](docs/cocos-scene-setup.md)
+- [本地开发流程](docs/dev-workflow.md)
 - [微信小游戏构建](docs/wechat-build.md)
 - [测试清单](docs/test-checklist.md)

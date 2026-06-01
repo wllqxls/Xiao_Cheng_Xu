@@ -6,14 +6,46 @@ export type RegionState =
   | 'controlled'
   | 'clearing';
 
+export type RegionCategory =
+  | 'capital'
+  | 'portCity'
+  | 'forest'
+  | 'mountain'
+  | 'farmland'
+  | 'industrial'
+  | 'techCampus'
+  | 'airportHub'
+  | 'islandChain'
+  | 'researchOutpost';
+
+export type RegionTechLevel = 'low' | 'standard' | 'industrial' | 'advanced';
+
+export type TransportHub = 'port' | 'airport' | 'rail' | 'road' | 'seaRoute';
+
+export interface RegionMapPosition {
+  x: number;
+  y: number;
+  size: number;
+}
+
+export interface RegionCorruptionProfile {
+  dotDensity: number;
+  overlayIntensity: number;
+}
+
 export interface RegionConfig {
   id: string;
   displayName: string;
+  category: RegionCategory;
+  techLevel: RegionTechLevel;
   population: number;
   initialState: RegionState;
   resistance: number;
   restoreDifficulty: number;
   resourceYield: number;
+  transportHubs: TransportHub[];
+  mapPosition: RegionMapPosition;
+  corruptionProfile: RegionCorruptionProfile;
   neighbors: string[];
 }
 
@@ -73,6 +105,7 @@ export interface RegionRuntimeState {
   state: RegionState;
   restoreProgress: number;
   controlTurns: number;
+  trafficControlTurns: number;
 }
 
 export interface GameSettings {

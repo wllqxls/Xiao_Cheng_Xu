@@ -7,10 +7,30 @@ AI 只用于离线生产素材，不在游戏运行时调用 AI。所有素材�
 ## 目标风格
 
 - 竖屏策略地图。
-- 原创大陆、城市群或区域网格。
+- 原创海陆地图，包含海洋、陆地、岛链和航线。
+- 地图主体是“手绘航海图 + 桌游式清晰区域边界”。
+- 陆地需要多元化：城市、森林、山地、农田、工业区、科技院、机场、港口、研究站。
+- 地图要有生活感和人口感：城市块、小镇、道路、港口、机场、农田、森林纹理。
 - 低饱和底色。
 - 区域状态用清晰颜色和特效区分。
 - UI 清晰克制，地图反馈优先。
+- 飞机和船只可以是简化图标，但需要能看出它们可能沿航线带来传播风险。
+- 侵蚀从红点、红斑到半透明红色覆盖逐级加深。
+
+## 当前推荐方向
+
+主方向：手绘航海世界地图。
+
+落地规则：美术质感参考手绘航海图，交互和状态表达参考桌游地图。不要做成科技雷达界面。
+
+区域表现建议：
+
+- 城市：建筑密集、人口标记多，侵蚀为密集红点和红色光簇。
+- 森林：树冠纹理明显，侵蚀为红色蔓延纹路。
+- 工业区：工厂和管线明显，侵蚀为烟尘状红斑。
+- 港口：码头、船只、海上航线明显，侵蚀会沿航线出现风险提示。
+- 机场：跑道或塔台明显，飞机轨迹带轻微红色风险尾迹。
+- 科技区：建筑更规整明亮，但不让整体地图变成科幻监控屏。
 
 ## 禁用方向
 
@@ -58,7 +78,7 @@ notes:
 ## 示例提示词
 
 ```text
-A vertical mobile strategy game map of an original fog-covered archipelago city, clean readable region shapes, soft grey-blue atmosphere, luminous repair beacons, stylized 2D game concept art, no real-world map, no country borders, no medical symbols
+A vertical mobile strategy game map of an original hand-drawn nautical world, ocean and fictional landmass, populated city districts, forests, farmlands, industrial harbor, airport, research campus, sea routes and air routes, corruption shown as red dots and translucent red stains on land, small ships and planes with subtle red warning trails, readable board-game territory borders, no real-world map, no country borders, no medical symbols, no virus icons
 ```
 
 ## 入库流程

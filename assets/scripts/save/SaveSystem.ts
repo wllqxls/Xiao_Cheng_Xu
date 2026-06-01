@@ -54,6 +54,7 @@ function migrateSave(save: Partial<GameState>): GameState | undefined {
     return {
       ...save,
       spreadReductionTurns: save.spreadReductionTurns ?? 0,
+      regionStates: normalizeRegionStates(save.regionStates),
       completedTutorialSteps: save.completedTutorialSteps ?? [],
       settings: normalizeSettings(save.settings),
       result: save.result ?? 'playing',
@@ -61,6 +62,21 @@ function migrateSave(save: Partial<GameState>): GameState | undefined {
   }
 
   return undefined;
+}
+
+function normalizeRegionStates(regionStates: GameState['regionStates'] | undefined): GameState['regionStates'] {
+  if (!regionStates) {
+    return {};
+  }
+
+  return Object.keys(regionStates).reduce<GameState['regionStates']>((normalized, regionId) => {
+    const runtime = regionStates[regionId];
+    normalized[regionId] = {
+      ...runtime,
+      trafficControlTurns: runtime.trafficControlTurns ?? 0,
+    };
+    return normalized;
+  }, {});
 }
 
 function normalizeSettings(settings: Partial<GameSettings> | undefined): GameSettings {

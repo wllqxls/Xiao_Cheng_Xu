@@ -21,8 +21,10 @@ import { applyEventChoice } from '../systems/EventSystem';
 import { playAudioCue, syncAmbienceAudio, type AudioCue, type AudioCueMap } from '../systems/AudioSystem';
 import {
   controlRegion,
+  controlTrafficHub,
   getControlCost,
   getRestoreCost,
+  getTrafficControlCost,
   recalculateGlobalRisk,
   recalculateRestoreProgress,
   restoreRegion,
@@ -35,10 +37,13 @@ import type {
   GameResult,
   GameState,
   GameSettings,
+  RegionCategory,
   RegionConfig,
   RegionConfigFile,
   RegionRuntimeState,
   RegionState,
+  RegionTechLevel,
+  TransportHub,
   UpgradeConfigFile,
 } from '../types/GameTypes';
 
@@ -62,6 +67,47 @@ const STATE_LABELS: Record<RegionState, string> = {
   clearing: '清除中',
 };
 
+const CATEGORY_LABELS: Record<RegionCategory, string> = {
+  capital: '核心城',
+  portCity: '港口城',
+  forest: '森林区',
+  mountain: '山地区',
+  farmland: '农田带',
+  industrial: '工业区',
+  techCampus: '科技院',
+  airportHub: '空港枢纽',
+  islandChain: '群岛',
+  researchOutpost: '研究站',
+};
+
+const TECH_LEVEL_LABELS: Record<RegionTechLevel, string> = {
+  low: '低技术',
+  standard: '常规',
+  industrial: '工业化',
+  advanced: '先进',
+};
+
+const TRANSPORT_LABELS: Record<TransportHub, string> = {
+  port: '港口',
+  airport: '机场',
+  rail: '铁路',
+  road: '道路',
+  seaRoute: '航线',
+};
+
+const CATEGORY_MARKS: Record<RegionCategory, string> = {
+  capital: '城',
+  portCity: '港',
+  forest: '森',
+  mountain: '山',
+  farmland: '田',
+  industrial: '工',
+  techCampus: '科',
+  airportHub: '机',
+  islandChain: '岛',
+  researchOutpost: '研',
+};
+
 const TUTORIAL_HINTS: Array<{ id: string; text: string }> = [
   { id: 'select-region', text: '引导：点击地图区域查看状态' },
   { id: 'first-action', text: '引导：选择修复、隔离或升级能力' },
@@ -72,9 +118,17 @@ const TUTORIAL_HINTS: Array<{ id: string; text: string }> = [
 interface RegionCard {
   regionId: string;
   node: Node;
+  categoryLabel: Label;
   nameLabel: Label;
   statusLabel: Label;
   graphics: Graphics;
+  width: number;
+  height: number;
+}
+
+interface MapPoint {
+  x: number;
+  y: number;
 }
 
 @ccclass('GameBootstrap')
@@ -182,6 +236,8 @@ export class GameBootstrap extends Component {
     root.addChild(mapLayer);
     mapLayer.setPosition(0, 190, 0);
 
+    this.buildMapBackdrop(mapLayer);
+    this.buildRouteLayer(mapLayer);
     this.regionCards = this.regionConfig.regions.map((region, index) =>
       this.createRegionCard(mapLayer, region, index),
     );
@@ -198,13 +254,14 @@ export class GameBootstrap extends Component {
     this.selectedDetailLabel = this.createLabel('SelectedDetailLabel', bottomPanel, '', 23, new Vec3(-80, 140, 0));
     this.selectedDetailLabel.horizontalAlign = Label.HorizontalAlign.LEFT;
     this.selectedDetailLabel.overflow = Label.Overflow.RESIZE_HEIGHT;
-    this.selectedDetailLabel.getComponent(UITransform)?.setContentSize(800, 92);
+    this.selectedDetailLabel.getComponent(UITransform)?.setContentSize(800, 132);
 
     this.createButton('SettingsButton', bottomPanel, '设置', new Vec3(230, 205, 0), () => this.handleOpenSettings(), 140, 48, 22);
     this.createButton('RestartButton', bottomPanel, '重开', new Vec3(390, 205, 0), () => this.handleRestart(), 140, 48, 22);
-    this.createButton('RestoreButton', bottomPanel, '修复', new Vec3(-320, 30, 0), () => this.handleRestore(), 220, 68);
-    this.createButton('ControlButton', bottomPanel, '隔离', new Vec3(0, 30, 0), () => this.handleControl(), 220, 68);
-    this.createButton('AdvanceDayButton', bottomPanel, '推进', new Vec3(320, 30, 0), () => this.handleAdvanceDay(), 220, 68);
+    this.createButton('RestoreButton', bottomPanel, '修复', new Vec3(-360, 30, 0), () => this.handleRestore(), 180, 68);
+    this.createButton('ControlButton', bottomPanel, '隔离', new Vec3(-120, 30, 0), () => this.handleControl(), 180, 68);
+    this.createButton('TrafficControlButton', bottomPanel, '管控', new Vec3(120, 30, 0), () => this.handleTrafficControl(), 180, 68);
+    this.createButton('AdvanceDayButton', bottomPanel, '推进', new Vec3(360, 30, 0), () => this.handleAdvanceDay(), 180, 68);
 
     this.upgradeLabels = this.upgradeConfig.upgrades.map((upgrade, index) => {
       const x = -320 + index * 320;
@@ -243,13 +300,87 @@ export class GameBootstrap extends Component {
     this.syncAudioSettings();
   }
 
+  private buildMapBackdrop(parent: Node): void {
+    const ocean = this.createPanel('OceanBackdrop', parent, 930, 760, new Vec3(0, 12, 0), new Color(30, 86, 118, 255));
+    const graphics = ocean.getComponent(Graphics);
+    if (!graphics) {
+      return;
+    }
+
+    this.paintOceanBackdrop(graphics, 930, 760);
+    this.createLabel('MapTitleLabel', ocean, '归明海图', 24, new Vec3(-360, 332, 0));
+    this.createLabel('MapLegendLabel', ocean, '青 稳定  黄 潜伏  红 侵蚀  蓝 受控', 20, new Vec3(170, 332, 0))
+      .getComponent(UITransform)?.setContentSize(540, 36);
+  }
+
+  private buildRouteLayer(parent: Node): void {
+    const routeNode = new Node('RouteLayer');
+    parent.addChild(routeNode);
+    const transform = routeNode.addComponent(UITransform);
+    transform.setContentSize(930, 760);
+    const graphics = routeNode.addComponent(Graphics);
+
+    const drawnRoutes = new Set<string>();
+    for (const region of this.regionConfig.regions) {
+      const from = this.getMapPoint(region);
+      for (const neighborId of region.neighbors) {
+        const neighbor = this.regionConfig.regions.find((item) => item.id === neighborId);
+        if (!neighbor) {
+          continue;
+        }
+
+        const routeKey = [region.id, neighbor.id].sort().join(':');
+        if (drawnRoutes.has(routeKey)) {
+          continue;
+        }
+
+        drawnRoutes.add(routeKey);
+        const to = this.getMapPoint(neighbor);
+        const isAirRoute = region.transportHubs.indexOf('airport') >= 0 || neighbor.transportHubs.indexOf('airport') >= 0;
+        const isSeaRoute = region.transportHubs.indexOf('port') >= 0
+          || region.transportHubs.indexOf('seaRoute') >= 0
+          || neighbor.transportHubs.indexOf('port') >= 0
+          || neighbor.transportHubs.indexOf('seaRoute') >= 0;
+        this.drawRoute(graphics, from, to, isAirRoute, isSeaRoute);
+
+        if (isAirRoute || isSeaRoute) {
+          this.createRouteMarker(routeNode, from, to, isAirRoute ? '机' : '船');
+        }
+      }
+    }
+  }
+
   private createRegionCard(parent: Node, region: RegionConfig, index: number): RegionCard {
-    const columns = 2;
-    const x = index % columns === 0 ? -245 : 245;
-    const y = 300 - Math.floor(index / columns) * 155;
-    const node = this.createPanel(`Region-${region.id}`, parent, 430, 118, new Vec3(x, y, 0), STATE_COLORS[region.initialState]);
-    const nameLabel = this.createLabel('NameLabel', node, region.displayName, 28, new Vec3(-110, 18, 0));
-    const statusLabel = this.createLabel('StatusLabel', node, '', 22, new Vec3(105, -24, 0));
+    const mapPoint = this.getMapPoint(region, index);
+    const mapPosition = region.mapPosition ?? { x: 0.5, y: 0.5, size: 1 };
+    const width = Math.round(300 * mapPosition.size);
+    const height = Math.round(88 * mapPosition.size);
+    const node = this.createPanel(
+      `Region-${region.id}`,
+      parent,
+      width,
+      height,
+      new Vec3(mapPoint.x, mapPoint.y, 0),
+      STATE_COLORS[region.initialState],
+    );
+    const categoryLabel = this.createLabel(
+      'CategoryLabel',
+      node,
+      CATEGORY_MARKS[region.category],
+      20,
+      new Vec3(-width / 2 + 28, 13, 0),
+    );
+    categoryLabel.getComponent(UITransform)?.setContentSize(42, 34);
+    const nameLabel = this.createLabel('NameLabel', node, region.displayName, 23, new Vec3(24, 16, 0));
+    nameLabel.getComponent(UITransform)?.setContentSize(width - 72, 34);
+    const statusLabel = this.createLabel(
+      'StatusLabel',
+      node,
+      '',
+      19,
+      new Vec3(24, -18, 0),
+    );
+    statusLabel.getComponent(UITransform)?.setContentSize(width - 72, 30);
     const graphics = node.getComponent(Graphics);
 
     if (!graphics) {
@@ -266,9 +397,12 @@ export class GameBootstrap extends Component {
     return {
       regionId: region.id,
       node,
+      categoryLabel,
       nameLabel,
       statusLabel,
       graphics,
+      width,
+      height,
     };
   }
 
@@ -348,6 +482,24 @@ export class GameBootstrap extends Component {
     this.feedbackLabel.string = success
       ? `${selectedRegion?.displayName ?? '区域'}进入受控状态`
       : this.getActionBlockedText('隔离', selectedRegion);
+    this.appendTutorialHintToFeedback();
+    this.afterStateChange();
+  }
+
+  private handleTrafficControl(): void {
+    if (this.isGameFinished()) {
+      return;
+    }
+
+    const selectedRegion = this.getSelectedRegion();
+    const success = controlTrafficHub(this.state, this.regionConfig, this.selectedRegionId);
+    if (success) {
+      this.completeTutorialStep('first-action');
+      this.playCue('risk');
+    }
+    this.feedbackLabel.string = success
+      ? `${selectedRegion?.displayName ?? '区域'}交通管控 3 天`
+      : this.getTrafficControlBlockedText(selectedRegion);
     this.appendTutorialHintToFeedback();
     this.afterStateChange();
   }
@@ -506,7 +658,20 @@ export class GameBootstrap extends Component {
         continue;
       }
 
-      this.paintPanel(card.graphics, 430, 118, STATE_COLORS[runtime.state]);
+      const region = this.regionConfig.regions.find((item) => item.id === card.regionId);
+      if (region) {
+        this.paintRegionMarker(
+          card.graphics,
+          card.width,
+          card.height,
+          STATE_COLORS[runtime.state],
+          region,
+          runtime,
+          card.regionId === this.selectedRegionId,
+        );
+      } else {
+        this.paintPanel(card.graphics, card.width, card.height, STATE_COLORS[runtime.state]);
+      }
       card.statusLabel.string = STATE_LABELS[runtime.state];
       const scale = card.regionId === this.selectedRegionId ? 1.06 : 1;
       card.node.setScale(new Vec3(scale, scale, 1));
@@ -532,10 +697,47 @@ export class GameBootstrap extends Component {
     }
 
     this.selectedDetailLabel.string =
-      `${STATE_LABELS[selectedRuntime.state]} | 人口 ${selectedRegion.population} | ` +
-      `修复 ${Math.round(selectedRuntime.restoreProgress * 100)}% | 产出 ${selectedRegion.resourceYield}\n` +
+      `${STATE_LABELS[selectedRuntime.state]} | ${this.getRegionCategoryLabel(selectedRegion)} | ` +
+      `${this.getTechLevelLabel(selectedRegion)} | 人口 ${this.formatPopulation(selectedRegion.population)}\n` +
+      `交通 ${this.formatTransportHubs(selectedRegion)} | 修复 ${Math.round(selectedRuntime.restoreProgress * 100)}% | ` +
+      `管控 ${selectedRuntime.trafficControlTurns}天 | 产出 ${selectedRegion.resourceYield}\n` +
       `修复成本 ${getRestoreCost(selectedRegion.restoreDifficulty)} | ` +
-      `隔离成本 ${getControlCost(selectedRegion.restoreDifficulty)}`;
+      `隔离 ${getControlCost(selectedRegion.restoreDifficulty)} | ` +
+      `管控 ${this.formatTrafficControlCost(selectedRegion)}`;
+  }
+
+  private getRegionCategoryLabel(region: RegionConfig): string {
+    return CATEGORY_LABELS[region.category] ?? '区域';
+  }
+
+  private getTechLevelLabel(region: RegionConfig): string {
+    return TECH_LEVEL_LABELS[region.techLevel] ?? '常规';
+  }
+
+  private formatTransportHubs(region: RegionConfig): string {
+    if (!region.transportHubs.length) {
+      return '无';
+    }
+
+    return region.transportHubs.map((hub) => TRANSPORT_LABELS[hub] ?? hub).join('/');
+  }
+
+  private formatTrafficControlCost(region: RegionConfig): string {
+    return this.hasTrafficControlTarget(region) ? `${getTrafficControlCost(region)}` : '不可用';
+  }
+
+  private hasTrafficControlTarget(region: RegionConfig): boolean {
+    return region.transportHubs.indexOf('airport') >= 0
+      || region.transportHubs.indexOf('port') >= 0
+      || region.transportHubs.indexOf('seaRoute') >= 0;
+  }
+
+  private formatPopulation(population: number): string {
+    if (population >= 10000) {
+      return `${Math.round(population / 10000)}万`;
+    }
+
+    return `${population}`;
   }
 
   private refreshUpgradeLabels(): void {
@@ -608,6 +810,28 @@ export class GameBootstrap extends Component {
     }
 
     return `${actionName}未生效`;
+  }
+
+  private getTrafficControlBlockedText(selectedRegion: RegionConfig | undefined): string {
+    if (!selectedRegion) {
+      return '未选择区域，无法管控交通';
+    }
+
+    if (!this.hasTrafficControlTarget(selectedRegion)) {
+      return `${selectedRegion.displayName}没有港口、机场或航线`;
+    }
+
+    const runtime = this.state.regionStates[selectedRegion.id];
+    if (runtime?.trafficControlTurns && runtime.trafficControlTurns > 0) {
+      return `${selectedRegion.displayName}已在交通管控中`;
+    }
+
+    const cost = getTrafficControlCost(selectedRegion);
+    if (this.state.resources < cost) {
+      return `明烬不足，需要 ${cost}`;
+    }
+
+    return '交通管控未生效';
   }
 
   private getUpgradeBlockedText(upgradeId: string): string {
@@ -733,6 +957,303 @@ export class GameBootstrap extends Component {
     graphics.fillColor = color;
     graphics.roundRect(-width / 2, -height / 2, width, height, 8);
     graphics.fill();
+  }
+
+  private paintOceanBackdrop(graphics: Graphics, width: number, height: number): void {
+    graphics.clear();
+    graphics.fillColor = new Color(27, 82, 115, 255);
+    graphics.roundRect(-width / 2, -height / 2, width, height, 18);
+    graphics.fill();
+
+    graphics.fillColor = new Color(68, 126, 120, 185);
+    graphics.ellipse(-90, 30, 250, 330);
+    graphics.fill();
+    graphics.ellipse(165, -115, 210, 250);
+    graphics.fill();
+    graphics.ellipse(250, 145, 140, 155);
+    graphics.fill();
+    graphics.ellipse(-255, -175, 105, 120);
+    graphics.fill();
+
+    graphics.strokeColor = new Color(151, 203, 205, 115);
+    graphics.lineWidth = 2;
+    for (let index = 0; index < 9; index += 1) {
+      const y = -310 + index * 76;
+      graphics.moveTo(-420, y);
+      graphics.bezierCurveTo(-230, y + 32, -80, y - 28, 110, y + 8);
+      graphics.bezierCurveTo(230, y + 34, 320, y - 18, 420, y + 18);
+      graphics.stroke();
+    }
+  }
+
+  private paintRegionMarker(
+    graphics: Graphics,
+    width: number,
+    height: number,
+    color: Color,
+    region: RegionConfig,
+    runtime: RegionRuntimeState,
+    selected: boolean,
+  ): void {
+    graphics.clear();
+    graphics.fillColor = new Color(color.r, color.g, color.b, 228);
+    graphics.roundRect(-width / 2, -height / 2, width, height, 18);
+    graphics.fill();
+
+    graphics.strokeColor = new Color(235, 244, 245, 210);
+    graphics.lineWidth = runtime.state === 'severe' ? 4 : 2;
+    graphics.roundRect(-width / 2, -height / 2, width, height, 18);
+    graphics.stroke();
+
+    if (selected) {
+      graphics.strokeColor = new Color(255, 239, 164, 245);
+      graphics.lineWidth = 5;
+      graphics.roundRect(-width / 2 - 4, -height / 2 - 4, width + 8, height + 8, 20);
+      graphics.stroke();
+    }
+
+    this.paintRegionLandmarks(graphics, width, height, region);
+    this.paintTrafficControlBadge(graphics, width, height, runtime);
+
+    const severity = this.getVisualCorruptionSeverity(region, runtime);
+    if (severity <= 0) {
+      return;
+    }
+
+    graphics.fillColor = new Color(177, 38, 45, Math.round(60 + severity * 105));
+    graphics.roundRect(-width / 2 + 8, -height / 2 + 8, width - 16, height - 16, 14);
+    graphics.fill();
+
+    const dotCount = Math.max(2, Math.round(4 + region.corruptionProfile.dotDensity * 12 + severity * 10));
+    graphics.fillColor = new Color(255, 83, 69, 215);
+    for (let index = 0; index < dotCount; index += 1) {
+      const point = this.getCorruptionDotPoint(region.id, index, width, height);
+      const radius = 2 + ((index + region.id.length) % 4) + severity * 2;
+      graphics.circle(point.x, point.y, radius);
+      graphics.fill();
+    }
+  }
+
+  private paintTrafficControlBadge(graphics: Graphics, width: number, height: number, runtime: RegionRuntimeState): void {
+    if (runtime.trafficControlTurns <= 0) {
+      return;
+    }
+
+    graphics.fillColor = new Color(70, 210, 220, 210);
+    graphics.roundRect(width / 2 - 48, height / 2 - 26, 38, 18, 8);
+    graphics.fill();
+    graphics.strokeColor = new Color(227, 252, 252, 230);
+    graphics.lineWidth = 2;
+    graphics.moveTo(width / 2 - 40, height / 2 - 17);
+    graphics.lineTo(width / 2 - 20, height / 2 - 17);
+    graphics.stroke();
+  }
+
+  private paintRegionLandmarks(graphics: Graphics, width: number, height: number, region: RegionConfig): void {
+    switch (region.category) {
+      case 'capital':
+      case 'portCity':
+        this.paintCityLandmarks(graphics, width, height, region.category === 'portCity');
+        break;
+      case 'forest':
+        this.paintForestLandmarks(graphics, width, height);
+        break;
+      case 'mountain':
+        this.paintMountainLandmarks(graphics, width, height);
+        break;
+      case 'farmland':
+        this.paintFarmlandLandmarks(graphics, width, height);
+        break;
+      case 'industrial':
+        this.paintIndustrialLandmarks(graphics, width, height);
+        break;
+      case 'techCampus':
+      case 'researchOutpost':
+        this.paintResearchLandmarks(graphics, width, height);
+        break;
+      case 'airportHub':
+        this.paintAirportLandmarks(graphics, width, height);
+        break;
+      case 'islandChain':
+        this.paintIslandLandmarks(graphics, width, height);
+        break;
+      default:
+        break;
+    }
+  }
+
+  private paintCityLandmarks(graphics: Graphics, width: number, height: number, hasPort: boolean): void {
+    graphics.fillColor = new Color(238, 232, 194, 190);
+    for (let index = 0; index < 5; index += 1) {
+      const x = -width * 0.23 + index * width * 0.1;
+      const buildingHeight = 10 + (index % 3) * 7;
+      graphics.rect(x, -height * 0.22, width * 0.055, buildingHeight);
+      graphics.fill();
+    }
+
+    if (!hasPort) {
+      return;
+    }
+
+    graphics.strokeColor = new Color(213, 235, 231, 180);
+    graphics.lineWidth = 2;
+    graphics.moveTo(width * 0.22, -height * 0.24);
+    graphics.lineTo(width * 0.38, -height * 0.24);
+    graphics.moveTo(width * 0.28, -height * 0.34);
+    graphics.lineTo(width * 0.28, -height * 0.14);
+    graphics.stroke();
+  }
+
+  private paintForestLandmarks(graphics: Graphics, width: number, height: number): void {
+    graphics.fillColor = new Color(34, 102, 75, 180);
+    for (let index = 0; index < 7; index += 1) {
+      const x = -width * 0.3 + index * width * 0.1;
+      const y = -height * 0.17 + (index % 2) * height * 0.16;
+      graphics.circle(x, y, 9);
+      graphics.fill();
+    }
+  }
+
+  private paintMountainLandmarks(graphics: Graphics, width: number, height: number): void {
+    graphics.strokeColor = new Color(239, 230, 199, 180);
+    graphics.lineWidth = 3;
+    for (let index = 0; index < 3; index += 1) {
+      const x = -width * 0.26 + index * width * 0.2;
+      graphics.moveTo(x - 16, -height * 0.18);
+      graphics.lineTo(x, height * 0.12);
+      graphics.lineTo(x + 18, -height * 0.18);
+      graphics.stroke();
+    }
+  }
+
+  private paintFarmlandLandmarks(graphics: Graphics, width: number, height: number): void {
+    graphics.strokeColor = new Color(235, 222, 137, 170);
+    graphics.lineWidth = 2;
+    for (let index = 0; index < 5; index += 1) {
+      const y = -height * 0.22 + index * height * 0.1;
+      graphics.moveTo(-width * 0.32, y);
+      graphics.lineTo(width * 0.34, y + 8);
+      graphics.stroke();
+    }
+  }
+
+  private paintIndustrialLandmarks(graphics: Graphics, width: number, height: number): void {
+    graphics.fillColor = new Color(88, 95, 100, 185);
+    graphics.rect(-width * 0.26, -height * 0.23, width * 0.28, height * 0.22);
+    graphics.fill();
+    graphics.rect(width * 0.08, -height * 0.22, width * 0.07, height * 0.38);
+    graphics.fill();
+    graphics.strokeColor = new Color(235, 204, 171, 135);
+    graphics.lineWidth = 2;
+    graphics.moveTo(width * 0.16, height * 0.16);
+    graphics.bezierCurveTo(width * 0.22, height * 0.28, width * 0.3, height * 0.12, width * 0.36, height * 0.22);
+    graphics.stroke();
+  }
+
+  private paintResearchLandmarks(graphics: Graphics, width: number, height: number): void {
+    graphics.strokeColor = new Color(226, 245, 250, 180);
+    graphics.lineWidth = 2;
+    graphics.circle(-width * 0.16, -height * 0.05, 13);
+    graphics.stroke();
+    graphics.circle(width * 0.08, height * 0.02, 18);
+    graphics.stroke();
+    graphics.moveTo(-width * 0.03, -height * 0.05);
+    graphics.lineTo(width * 0.24, -height * 0.18);
+    graphics.stroke();
+  }
+
+  private paintAirportLandmarks(graphics: Graphics, width: number, height: number): void {
+    graphics.strokeColor = new Color(244, 238, 205, 185);
+    graphics.lineWidth = 5;
+    graphics.moveTo(-width * 0.27, -height * 0.2);
+    graphics.lineTo(width * 0.32, height * 0.17);
+    graphics.stroke();
+    graphics.lineWidth = 2;
+    graphics.moveTo(-width * 0.05, -height * 0.02);
+    graphics.lineTo(width * 0.08, -height * 0.18);
+    graphics.moveTo(width * 0.07, height * 0.06);
+    graphics.lineTo(width * 0.22, height * 0.02);
+    graphics.stroke();
+  }
+
+  private paintIslandLandmarks(graphics: Graphics, width: number, height: number): void {
+    graphics.fillColor = new Color(120, 178, 139, 185);
+    graphics.ellipse(-width * 0.24, -height * 0.08, 26, 15);
+    graphics.fill();
+    graphics.ellipse(-width * 0.02, height * 0.1, 32, 18);
+    graphics.fill();
+    graphics.ellipse(width * 0.25, -height * 0.14, 24, 14);
+    graphics.fill();
+  }
+
+  private drawRoute(graphics: Graphics, from: MapPoint, to: MapPoint, isAirRoute: boolean, isSeaRoute: boolean): void {
+    graphics.strokeColor = isAirRoute
+      ? new Color(255, 166, 93, 175)
+      : isSeaRoute
+        ? new Color(120, 214, 232, 150)
+        : new Color(186, 201, 179, 110);
+    graphics.lineWidth = isAirRoute || isSeaRoute ? 3 : 2;
+    graphics.moveTo(from.x, from.y);
+    const lift = isAirRoute ? 55 : 28;
+    graphics.quadraticCurveTo((from.x + to.x) / 2, (from.y + to.y) / 2 + lift, to.x, to.y);
+    graphics.stroke();
+
+    if (isAirRoute || isSeaRoute) {
+      graphics.strokeColor = new Color(224, 63, 57, 100);
+      graphics.lineWidth = 1.5;
+      graphics.moveTo(from.x, from.y);
+      graphics.quadraticCurveTo((from.x + to.x) / 2, (from.y + to.y) / 2 + lift + 10, to.x, to.y);
+      graphics.stroke();
+    }
+  }
+
+  private createRouteMarker(parent: Node, from: MapPoint, to: MapPoint, text: string): void {
+    const x = (from.x + to.x) / 2;
+    const y = (from.y + to.y) / 2 + (text === '机' ? 42 : 20);
+    const label = this.createLabel(`RouteMarker-${text}-${Math.round(x)}-${Math.round(y)}`, parent, text, 18, new Vec3(x, y, 0));
+    label.getComponent(UITransform)?.setContentSize(34, 28);
+    label.color = new Color(255, 216, 161, 235);
+  }
+
+  private getMapPoint(region: RegionConfig, index = 0): MapPoint {
+    const columns = 2;
+    const fallbackX = index % columns === 0 ? 0.28 : 0.72;
+    const fallbackY = 0.78 - Math.floor(index / columns) * 0.16;
+    const mapPosition = region.mapPosition ?? { x: fallbackX, y: fallbackY, size: 1 };
+    return {
+      x: (mapPosition.x - 0.5) * 780,
+      y: (mapPosition.y - 0.5) * 650,
+    };
+  }
+
+  private getVisualCorruptionSeverity(region: RegionConfig, runtime: RegionRuntimeState): number {
+    const stateSeverity: Record<RegionState, number> = {
+      unaffected: 0,
+      latent: 0.25,
+      spreading: 0.58,
+      severe: 1,
+      controlled: 0.16,
+      clearing: 0.36,
+    };
+    return Math.min(1, stateSeverity[runtime.state] * region.corruptionProfile.overlayIntensity);
+  }
+
+  private getCorruptionDotPoint(regionId: string, index: number, width: number, height: number): MapPoint {
+    const seed = this.hashString(`${regionId}:${index}`);
+    const xRatio = ((seed * 37) % 100) / 100;
+    const yRatio = ((seed * 71) % 100) / 100;
+    return {
+      x: -width * 0.38 + xRatio * width * 0.76,
+      y: -height * 0.28 + yRatio * height * 0.56,
+    };
+  }
+
+  private hashString(value: string): number {
+    let hash = 0;
+    for (let index = 0; index < value.length; index += 1) {
+      hash = (hash * 31 + value.charCodeAt(index)) % 9973;
+    }
+    return hash;
   }
 
   private createLabel(name: string, parent: Node, text: string, fontSize: number, position: Vec3): Label {

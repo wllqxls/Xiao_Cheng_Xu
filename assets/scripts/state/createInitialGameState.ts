@@ -7,6 +7,7 @@ export function createInitialGameState(config: GameConfigBundle): GameState {
         state: region.initialState,
         restoreProgress: region.initialState === 'unaffected' ? 1 : 0,
         controlTurns: 0,
+        trafficControlTurns: 0,
       };
       return states;
     },

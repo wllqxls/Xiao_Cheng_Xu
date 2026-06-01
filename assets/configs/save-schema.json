@@ -7,7 +7,12 @@
     "globalRisk": "number",
     "globalRestoreProgress": "number",
     "spreadReductionTurns": "number",
-    "regionStates": "Record<string, RegionRuntimeState>",
+    "regionStates": {
+      "state": "RegionState",
+      "restoreProgress": "number",
+      "controlTurns": "number",
+      "trafficControlTurns": "number"
+    },
     "upgradeLevels": "Record<string, number>",
     "completedTutorialSteps": "string[]",
     "settings": {

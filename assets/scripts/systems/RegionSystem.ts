@@ -1,13 +1,55 @@
-import type { GameState, RegionConfigFile, UpgradeConfigFile } from '../types/GameTypes';
+import type {
+  GameState,
+  RegionCategory,
+  RegionConfig,
+  RegionConfigFile,
+  RegionState,
+  TransportHub,
+  UpgradeConfigFile,
+} from '../types/GameTypes';
 import { getCombinedUpgradeEffects } from './UpgradeSystem';
 
-const STATE_RISK_WEIGHT = {
+const STATE_RISK_WEIGHT: Record<RegionState, number> = {
   unaffected: 0,
   latent: 0.15,
   spreading: 0.45,
   severe: 0.8,
   controlled: 0.05,
   clearing: 0.2,
+};
+
+const CATEGORY_EXPOSURE: Record<RegionCategory, number> = {
+  capital: 1.25,
+  portCity: 1.22,
+  forest: 0.9,
+  mountain: 0.82,
+  farmland: 1,
+  industrial: 1.12,
+  techCampus: 0.95,
+  airportHub: 1.28,
+  islandChain: 1.05,
+  researchOutpost: 0.88,
+};
+
+const CATEGORY_PRESSURE: Record<RegionCategory, number> = {
+  capital: 1.18,
+  portCity: 1.28,
+  forest: 0.86,
+  mountain: 0.82,
+  farmland: 0.95,
+  industrial: 1.12,
+  techCampus: 0.92,
+  airportHub: 1.32,
+  islandChain: 1.1,
+  researchOutpost: 0.86,
+};
+
+const HUB_EXPOSURE: Record<TransportHub, number> = {
+  port: 0.1,
+  airport: 0.14,
+  rail: 0.07,
+  road: 0.04,
+  seaRoute: 0.09,
 };
 
 export function restoreRegion(
@@ -67,6 +109,30 @@ export function controlRegion(
   return true;
 }
 
+export function controlTrafficHub(
+  state: GameState,
+  regionConfig: RegionConfigFile,
+  regionId: string,
+): boolean {
+  const region = regionConfig.regions.find((item) => item.id === regionId);
+  const runtime = state.regionStates[regionId];
+
+  if (!region || !runtime || !hasTrafficControlTarget(region)) {
+    return false;
+  }
+
+  const cost = getTrafficControlCost(region);
+
+  if (state.resources < cost) {
+    return false;
+  }
+
+  state.resources -= cost;
+  runtime.trafficControlTurns = 3;
+
+  return true;
+}
+
 export function advanceRegionRisks(
   state: GameState,
   regionConfig: RegionConfigFile,
@@ -109,8 +175,9 @@ export function advanceRegionRisks(
           continue;
         }
 
-        const pressure = runtime.state === 'severe' ? 0.38 : 0.24;
-        const chance = pressure * (1 - neighbor.resistance) * (1 - spreadReduction);
+        const pressure = getSpreadPressure(region, runtime.state, runtime.trafficControlTurns > 0);
+        const exposure = getRegionExposure(neighbor, neighborRuntime.trafficControlTurns > 0);
+        const chance = pressure * exposure * (1 - neighbor.resistance) * (1 - spreadReduction);
 
         if (chance > 0.08) {
           nextStates.set(neighborId, 'latent');
@@ -118,11 +185,11 @@ export function advanceRegionRisks(
       }
     }
 
-    if (runtime.state === 'latent' && region.resistance < 0.55) {
+    if (runtime.state === 'latent' && shouldLatentRegionWorsen(region)) {
       nextStates.set(region.id, 'spreading');
     }
 
-    if (runtime.state === 'spreading' && region.resistance < 0.4) {
+    if (runtime.state === 'spreading' && shouldSpreadingRegionBecomeSevere(region)) {
       nextStates.set(region.id, 'severe');
     }
   }
@@ -131,6 +198,13 @@ export function advanceRegionRisks(
     const runtime = state.regionStates[regionId];
     if (runtime && runtime.state !== 'controlled' && runtime.state !== 'clearing') {
       runtime.state = nextState;
+    }
+  }
+
+  for (const regionId of Object.keys(state.regionStates)) {
+    const runtime = state.regionStates[regionId];
+    if (runtime.trafficControlTurns > 0) {
+      runtime.trafficControlTurns -= 1;
     }
   }
 
@@ -158,6 +232,47 @@ export function recalculateGlobalRisk(state: GameState, regionConfig: RegionConf
   return state.globalRisk;
 }
 
+function getSpreadPressure(region: RegionConfig, state: RegionState, trafficControlled: boolean): number {
+  const basePressure = state === 'severe' ? 0.38 : 0.24;
+  const pressure = basePressure * CATEGORY_PRESSURE[region.category] * getTransportPressure(region);
+  return trafficControlled ? pressure * 0.7 : pressure;
+}
+
+function getRegionExposure(region: RegionConfig, trafficControlled = false): number {
+  const hubExposure = region.transportHubs.reduce((total, hub) => total + HUB_EXPOSURE[hub], 0);
+  const exposure = CATEGORY_EXPOSURE[region.category] + hubExposure;
+  return trafficControlled ? exposure * 0.76 : exposure;
+}
+
+function getTransportPressure(region: RegionConfig): number {
+  const hasAirOrSea = region.transportHubs.indexOf('airport') >= 0
+    || region.transportHubs.indexOf('port') >= 0
+    || region.transportHubs.indexOf('seaRoute') >= 0;
+  const hasGround = region.transportHubs.indexOf('rail') >= 0 || region.transportHubs.indexOf('road') >= 0;
+
+  if (hasAirOrSea) {
+    return hasGround ? 1.18 : 1.12;
+  }
+
+  return hasGround ? 1.05 : 1;
+}
+
+function hasTrafficControlTarget(region: RegionConfig): boolean {
+  return region.transportHubs.indexOf('airport') >= 0
+    || region.transportHubs.indexOf('port') >= 0
+    || region.transportHubs.indexOf('seaRoute') >= 0;
+}
+
+function shouldLatentRegionWorsen(region: RegionConfig): boolean {
+  const threshold = 0.55 + Math.max(0, getRegionExposure(region) - 1) * 0.08;
+  return region.resistance < threshold;
+}
+
+function shouldSpreadingRegionBecomeSevere(region: RegionConfig): boolean {
+  const threshold = 0.4 + Math.max(0, getRegionExposure(region) - 1) * 0.06;
+  return region.resistance < threshold;
+}
+
 export function recalculateRestoreProgress(
   state: GameState,
   regionConfig: RegionConfigFile,
@@ -177,4 +292,11 @@ export function getRestoreCost(restoreDifficulty: number): number {
 
 export function getControlCost(restoreDifficulty: number): number {
   return Math.ceil(8 + restoreDifficulty * 18);
+}
+
+export function getTrafficControlCost(region: RegionConfig): number {
+  const hubCount = region.transportHubs.filter((hub) =>
+    hub === 'airport' || hub === 'port' || hub === 'seaRoute'
+  ).length;
+  return Math.ceil(10 + region.restoreDifficulty * 14 + hubCount * 4);
 }
