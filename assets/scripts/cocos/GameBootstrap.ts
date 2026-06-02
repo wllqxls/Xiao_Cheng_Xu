@@ -257,11 +257,15 @@ export class GameBootstrap extends Component {
       new Vec3(0, -640, 0),
       new Color(24, 32, 44, 245),
     );
-    this.selectedNameLabel = this.createLabel('SelectedNameLabel', bottomPanel, '', 32, new Vec3(-405, 190, 0));
-    this.selectedDetailLabel = this.createLabel('SelectedDetailLabel', bottomPanel, '', 23, new Vec3(-80, 140, 0));
+    this.selectedNameLabel = this.createLabel('SelectedNameLabel', bottomPanel, '', 34, new Vec3(-405, 190, 0));
+    this.selectedNameLabel.getComponent(UITransform)?.setContentSize(260, 52);
+    this.addReadableLabelOutline(this.selectedNameLabel);
+
+    this.selectedDetailLabel = this.createLabel('SelectedDetailLabel', bottomPanel, '', 22, new Vec3(-70, 128, 0));
     this.selectedDetailLabel.horizontalAlign = Label.HorizontalAlign.LEFT;
     this.selectedDetailLabel.overflow = Label.Overflow.RESIZE_HEIGHT;
-    this.selectedDetailLabel.getComponent(UITransform)?.setContentSize(800, 132);
+    this.selectedDetailLabel.lineHeight = 29;
+    this.selectedDetailLabel.getComponent(UITransform)?.setContentSize(820, 156);
 
     this.createButton('SettingsButton', bottomPanel, '设置', new Vec3(230, 205, 0), () => this.handleOpenSettings(), 140, 48, 22);
     this.createButton('RestartButton', bottomPanel, '重开', new Vec3(390, 205, 0), () => this.handleRestart(), 140, 48, 22);
@@ -738,13 +742,10 @@ export class GameBootstrap extends Component {
     }
 
     this.selectedDetailLabel.string =
-      `${STATE_LABELS[selectedRuntime.state]} | ${this.getRegionCategoryLabel(selectedRegion)} | ` +
-      `${this.getTechLevelLabel(selectedRegion)} | 人口 ${this.formatPopulation(selectedRegion.population)}\n` +
-      `交通 ${this.formatTransportHubs(selectedRegion)} | 修复 ${Math.round(selectedRuntime.restoreProgress * 100)}% | ` +
-      `管控 ${selectedRuntime.trafficControlTurns}天 | 产出 ${selectedRegion.resourceYield}\n` +
-      `修复成本 ${getRestoreCost(selectedRegion.restoreDifficulty)} | ` +
-      `隔离 ${getControlCost(selectedRegion.restoreDifficulty)} | ` +
-      `管控 ${this.formatTrafficControlCost(selectedRegion)}`;
+      `状态 ${STATE_LABELS[selectedRuntime.state]} · ${this.getRegionCategoryLabel(selectedRegion)} · ${this.getTechLevelLabel(selectedRegion)}\n` +
+      `人口 ${this.formatPopulation(selectedRegion.population)} · 产出 ${selectedRegion.resourceYield} · 修复 ${Math.round(selectedRuntime.restoreProgress * 100)}%\n` +
+      `成本 修复 ${getRestoreCost(selectedRegion.restoreDifficulty)} · 隔离 ${getControlCost(selectedRegion.restoreDifficulty)} · 管控 ${this.formatTrafficControlCost(selectedRegion)}\n` +
+      `交通 ${this.formatTransportHubs(selectedRegion)} · 管控剩余 ${selectedRuntime.trafficControlTurns} 天`;
   }
 
   private getRegionCategoryLabel(region: RegionConfig): string {
