@@ -55,6 +55,11 @@ const PORTRAIT_DESIGN_HEIGHT = 1920;
 const REGION_CARD_BASE_WIDTH = 258;
 const REGION_CARD_BASE_HEIGHT = 82;
 
+interface ButtonVisualStyle {
+  fill: Color;
+  label?: Color;
+}
+
 const STATE_COLORS: Record<RegionState, Color> = {
   unaffected: new Color(77, 184, 142, 255),
   latent: new Color(219, 188, 82, 255),
@@ -267,30 +272,101 @@ export class GameBootstrap extends Component {
     this.selectedDetailLabel.lineHeight = 29;
     this.selectedDetailLabel.getComponent(UITransform)?.setContentSize(820, 156);
 
-    this.createButton('SettingsButton', bottomPanel, '设置', new Vec3(230, 205, 0), () => this.handleOpenSettings(), 140, 48, 22);
-    this.createButton('RestartButton', bottomPanel, '重开', new Vec3(390, 205, 0), () => this.handleRestart(), 140, 48, 22);
-    this.createButton('RestoreButton', bottomPanel, '修复', new Vec3(-360, 30, 0), () => this.handleRestore(), 180, 68);
-    this.createButton('ControlButton', bottomPanel, '隔离', new Vec3(-120, 30, 0), () => this.handleControl(), 180, 68);
-    this.createButton('TrafficControlButton', bottomPanel, '管控', new Vec3(120, 30, 0), () => this.handleTrafficControl(), 180, 68);
-    this.createButton('AdvanceDayButton', bottomPanel, '推进', new Vec3(360, 30, 0), () => this.handleAdvanceDay(), 180, 68);
+    const regionActionStyle = { fill: new Color(43, 143, 156, 255) };
+    const primaryActionStyle = { fill: new Color(210, 146, 58, 255) };
+    const utilityActionStyle = { fill: new Color(70, 82, 98, 255) };
+    const upgradeActionStyle = { fill: new Color(89, 108, 174, 255) };
+
+    this.createButton(
+      'SettingsButton',
+      bottomPanel,
+      '设置',
+      new Vec3(230, 205, 0),
+      () => this.handleOpenSettings(),
+      140,
+      48,
+      22,
+      utilityActionStyle,
+    );
+    this.createButton(
+      'RestartButton',
+      bottomPanel,
+      '重开',
+      new Vec3(390, 205, 0),
+      () => this.handleRestart(),
+      140,
+      48,
+      22,
+      utilityActionStyle,
+    );
+
+    this.createSectionLabel(bottomPanel, '区域行动', new Vec3(-420, 54, 0));
+    this.createSectionLabel(bottomPanel, '全局流程', new Vec3(190, 54, 0));
+    this.createSectionLabel(bottomPanel, '强化', new Vec3(-420, -92, 0));
+
+    this.createButton(
+      'RestoreButton',
+      bottomPanel,
+      '修复',
+      new Vec3(-350, -8, 0),
+      () => this.handleRestore(),
+      170,
+      62,
+      24,
+      regionActionStyle,
+    );
+    this.createButton(
+      'ControlButton',
+      bottomPanel,
+      '隔离',
+      new Vec3(-160, -8, 0),
+      () => this.handleControl(),
+      170,
+      62,
+      24,
+      regionActionStyle,
+    );
+    this.createButton(
+      'TrafficControlButton',
+      bottomPanel,
+      '管控',
+      new Vec3(30, -8, 0),
+      () => this.handleTrafficControl(),
+      170,
+      62,
+      24,
+      regionActionStyle,
+    );
+    this.createButton(
+      'AdvanceDayButton',
+      bottomPanel,
+      '推进一天',
+      new Vec3(320, -8, 0),
+      () => this.handleAdvanceDay(),
+      210,
+      68,
+      25,
+      primaryActionStyle,
+    );
 
     this.upgradeLabels = this.upgradeConfig.upgrades.map((upgrade, index) => {
-      const x = -320 + index * 320;
+      const x = -300 + index * 300;
       const button = this.createButton(
         `UpgradeButton${index + 1}`,
         bottomPanel,
         '',
-        new Vec3(x, -120, 0),
+        new Vec3(x, -150, 0),
         () => this.handleBuyUpgrade(upgrade.id),
-        220,
-        72,
-        21,
+        240,
+        68,
+        20,
+        upgradeActionStyle,
       );
       const label = button.getChildByName('Label')?.getComponent(Label);
       if (!label) {
         throw new Error('Upgrade button label missing.');
       }
-      label.fontSize = 21;
+      label.fontSize = 20;
       return label;
     });
 
@@ -1322,6 +1398,14 @@ export class GameBootstrap extends Component {
     label.outlineWidth = 2;
   }
 
+  private createSectionLabel(parent: Node, text: string, position: Vec3, width = 220): Label {
+    const label = this.createLabel(`${text}SectionLabel`, parent, text, 20, position);
+    label.horizontalAlign = Label.HorizontalAlign.LEFT;
+    label.color = new Color(156, 199, 214, 255);
+    label.getComponent(UITransform)?.setContentSize(width, 30);
+    return label;
+  }
+
   private createButton(
     name: string,
     parent: Node,
@@ -1331,8 +1415,9 @@ export class GameBootstrap extends Component {
     width = 250,
     height = 76,
     fontSize = 26,
+    style: ButtonVisualStyle = { fill: new Color(59, 130, 180, 255) },
   ): Node {
-    const buttonNode = this.createPanel(name, parent, width, height, position, new Color(59, 130, 180, 255));
+    const buttonNode = this.createPanel(name, parent, width, height, position, style.fill);
     buttonNode.addComponent(Button);
     buttonNode.on(Button.EventType.CLICK, () => {
       this.playCue('tap');
@@ -1340,6 +1425,7 @@ export class GameBootstrap extends Component {
     });
     const label = this.createLabel('Label', buttonNode, text, fontSize, new Vec3(0, 0, 0));
     label.getComponent(UITransform)?.setContentSize(width - 20, height - 8);
+    label.color = style.label ?? new Color(238, 242, 247, 255);
 
     const widget = buttonNode.addComponent(Widget);
     widget.alignMode = Widget.AlignMode.ONCE;
