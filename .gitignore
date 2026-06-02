@@ -8,6 +8,7 @@
 /local/
 /build/
 /profiles/
+/.creator/asset-template/
 /native/engine/android/**/*/assets
 
 #//////////////////////////

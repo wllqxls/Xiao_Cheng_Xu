@@ -63,6 +63,11 @@ node scripts/verify-simulation.mjs
 node scripts/verify-scene-wiring.mjs
 ```
 
+Cocos preview portrait UI scaling check:
+```powershell
+node scripts/verify-responsive-layout.mjs
+```
+
 该脚本会检查 `assets/scenes/main.scene` 是否保留 `1080x1920` 竖屏 Canvas、`Canvas` 是否挂载 `GameBootstrap`，以及 `regionConfigAsset`、`upgradeConfigAsset`、`eventConfigAsset` 是否和对应 `.meta` 的 UUID 一致。
 
 ## Cocos 预览

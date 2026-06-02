@@ -103,6 +103,11 @@ node scripts/verify-simulation.mjs
 node scripts/verify-scene-wiring.mjs
 ```
 
+Cocos preview portrait UI scaling check:
+```powershell
+node scripts/verify-responsive-layout.mjs
+```
+
 ## 文档入口
 
 - [项目规则](CLAUDE.md)

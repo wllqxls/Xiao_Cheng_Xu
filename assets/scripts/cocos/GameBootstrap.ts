@@ -13,6 +13,7 @@ import {
   Vec3,
   Widget,
   sys,
+  view,
 } from 'cc';
 import { createInitialGameState } from '../state/createInitialGameState';
 import { clearSave, loadGame, saveGame } from '../save/SaveSystem';
@@ -48,6 +49,9 @@ import type {
 } from '../types/GameTypes';
 
 const { ccclass, property } = _decorator;
+
+const PORTRAIT_DESIGN_WIDTH = 1080;
+const PORTRAIT_DESIGN_HEIGHT = 1920;
 
 const STATE_COLORS: Record<RegionState, Color> = {
   unaffected: new Color(77, 184, 142, 255),
@@ -223,17 +227,18 @@ export class GameBootstrap extends Component {
   private buildUi(): void {
     const root = this.node;
     this.clearGeneratedUi(root);
+    const designRoot = this.createDesignRoot(root);
 
-    const topBar = this.createPanel('TopBar', root, 1040, 120, new Vec3(0, 850, 0), new Color(31, 43, 59, 235));
+    const topBar = this.createPanel('TopBar', designRoot, 1040, 120, new Vec3(0, 850, 0), new Color(31, 43, 59, 235));
     this.dayLabel = this.createLabel('DayLabel', topBar, '', 28, new Vec3(-390, 22, 0));
     this.resourceLabel = this.createLabel('ResourceLabel', topBar, '', 28, new Vec3(-130, 22, 0));
     this.riskLabel = this.createLabel('RiskLabel', topBar, '', 28, new Vec3(130, 22, 0));
     this.progressLabel = this.createLabel('ProgressLabel', topBar, '', 28, new Vec3(380, 22, 0));
-    this.feedbackLabel = this.createLabel('FeedbackLabel', root, '', 23, new Vec3(0, -260, 0));
+    this.feedbackLabel = this.createLabel('FeedbackLabel', designRoot, '', 23, new Vec3(0, -260, 0));
     this.feedbackLabel.getComponent(UITransform)?.setContentSize(920, 48);
 
     const mapLayer = new Node('MapLayer');
-    root.addChild(mapLayer);
+    designRoot.addChild(mapLayer);
     mapLayer.setPosition(0, 190, 0);
 
     this.buildMapBackdrop(mapLayer);
@@ -244,7 +249,7 @@ export class GameBootstrap extends Component {
 
     const bottomPanel = this.createPanel(
       'BottomPanel',
-      root,
+      designRoot,
       1040,
       500,
       new Vec3(0, -640, 0),
@@ -283,9 +288,31 @@ export class GameBootstrap extends Component {
       return label;
     });
 
-    this.buildEventPanel(root);
-    this.buildResultPanel(root);
-    this.buildSettingsPanel(root);
+    this.buildEventPanel(designRoot);
+    this.buildResultPanel(designRoot);
+    this.buildSettingsPanel(designRoot);
+  }
+
+  private createDesignRoot(root: Node): Node {
+    const designRoot = new Node('GeneratedUiRoot');
+    root.addChild(designRoot);
+
+    const transform = designRoot.addComponent(UITransform);
+    transform.setContentSize(PORTRAIT_DESIGN_WIDTH, PORTRAIT_DESIGN_HEIGHT);
+
+    const frameSize = view.getFrameSize();
+    const scale = this.calculatePortraitViewportScale(frameSize.width, frameSize.height);
+    designRoot.setScale(new Vec3(scale, scale, 1));
+
+    return designRoot;
+  }
+
+  private calculatePortraitViewportScale(visibleWidth: number, visibleHeight: number): number {
+    if (visibleWidth <= 0 || visibleHeight <= 0) {
+      return 1;
+    }
+
+    return Math.min(visibleWidth / PORTRAIT_DESIGN_WIDTH, visibleHeight / PORTRAIT_DESIGN_HEIGHT);
   }
 
   private buildAudio(): void {
