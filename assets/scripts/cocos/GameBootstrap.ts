@@ -1114,23 +1114,14 @@ export class GameBootstrap extends Component {
     selected: boolean,
   ): void {
     graphics.clear();
-    graphics.fillColor = new Color(color.r, color.g, color.b, 228);
-    graphics.roundRect(-width / 2, -height / 2, width, height, 18);
-    graphics.fill();
-
-    graphics.strokeColor = new Color(235, 244, 245, 210);
-    graphics.lineWidth = runtime.state === 'severe' ? 4 : 2;
-    graphics.roundRect(-width / 2, -height / 2, width, height, 18);
-    graphics.stroke();
+    this.paintTerritoryShape(graphics, width, height, color, runtime);
 
     if (selected) {
-      graphics.strokeColor = new Color(255, 239, 164, 245);
-      graphics.lineWidth = 5;
-      graphics.roundRect(-width / 2 - 4, -height / 2 - 4, width + 8, height + 8, 20);
-      graphics.stroke();
+      this.paintSelectedTerritoryRing(graphics, width, height);
     }
 
     this.paintRegionLandmarks(graphics, width, height, region);
+    this.paintTerritoryContour(graphics, width, height, region);
     this.paintTrafficControlBadge(graphics, width, height, runtime);
 
     const severity = this.getVisualCorruptionSeverity(region, runtime);
@@ -1139,7 +1130,9 @@ export class GameBootstrap extends Component {
     }
 
     graphics.fillColor = new Color(177, 38, 45, Math.round(60 + severity * 105));
-    graphics.roundRect(-width / 2 + 8, -height / 2 + 8, width - 16, height - 16, 14);
+    graphics.ellipse(-width * 0.1, -height * 0.02, width * 0.31, height * 0.23);
+    graphics.fill();
+    graphics.ellipse(width * 0.12, height * 0.08, width * 0.22, height * 0.16);
     graphics.fill();
 
     const dotCount = Math.max(2, Math.round(4 + region.corruptionProfile.dotDensity * 12 + severity * 10));
@@ -1150,6 +1143,85 @@ export class GameBootstrap extends Component {
       graphics.circle(point.x, point.y, radius);
       graphics.fill();
     }
+  }
+
+  private paintTerritoryShape(
+    graphics: Graphics,
+    width: number,
+    height: number,
+    color: Color,
+    runtime: RegionRuntimeState,
+  ): void {
+    graphics.fillColor = new Color(
+      Math.min(255, color.r + 10),
+      Math.min(255, color.g + 10),
+      Math.min(255, color.b + 10),
+      205,
+    );
+    this.traceTerritoryPath(graphics, width, height, 1);
+    graphics.fill();
+
+    graphics.strokeColor = new Color(232, 240, 220, runtime.state === 'severe' ? 230 : 180);
+    graphics.lineWidth = runtime.state === 'severe' ? 4 : 2;
+    this.traceTerritoryPath(graphics, width, height, 1);
+    graphics.stroke();
+
+    graphics.strokeColor = new Color(20, 42, 48, 75);
+    graphics.lineWidth = 2;
+    this.traceTerritoryPath(graphics, width - 10, height - 8, 1);
+    graphics.stroke();
+  }
+
+  private paintSelectedTerritoryRing(graphics: Graphics, width: number, height: number): void {
+    graphics.strokeColor = new Color(255, 239, 164, 245);
+    graphics.lineWidth = 5;
+    this.traceTerritoryPath(graphics, width + 16, height + 12, 1.02);
+    graphics.stroke();
+
+    graphics.strokeColor = new Color(255, 249, 206, 130);
+    graphics.lineWidth = 2;
+    this.traceTerritoryPath(graphics, width + 28, height + 20, 1.03);
+    graphics.stroke();
+  }
+
+  private paintTerritoryContour(graphics: Graphics, width: number, height: number, region: RegionConfig): void {
+    const offsetSeed = (this.hashString(region.id) % 17) - 8;
+    graphics.strokeColor = new Color(244, 236, 191, 80);
+    graphics.lineWidth = 2;
+    graphics.moveTo(-width * 0.36, -height * 0.05 + offsetSeed * 0.25);
+    graphics.bezierCurveTo(
+      -width * 0.16,
+      height * 0.14,
+      width * 0.08,
+      -height * 0.17,
+      width * 0.36,
+      height * 0.04,
+    );
+    graphics.stroke();
+
+    graphics.strokeColor = new Color(18, 44, 48, 70);
+    graphics.lineWidth = 2;
+    graphics.moveTo(-width * 0.32, height * 0.19);
+    graphics.bezierCurveTo(
+      -width * 0.06,
+      height * 0.04,
+      width * 0.16,
+      height * 0.22,
+      width * 0.31,
+      -height * 0.08,
+    );
+    graphics.stroke();
+  }
+
+  private traceTerritoryPath(graphics: Graphics, width: number, height: number, scale: number): void {
+    const halfWidth = (width * scale) / 2;
+    const halfHeight = (height * scale) / 2;
+    graphics.moveTo(-halfWidth * 0.9, -halfHeight * 0.12);
+    graphics.bezierCurveTo(-halfWidth * 0.82, halfHeight * 0.58, -halfWidth * 0.4, halfHeight * 0.86, halfWidth * 0.02, halfHeight * 0.74);
+    graphics.bezierCurveTo(halfWidth * 0.52, halfHeight * 0.88, halfWidth * 0.98, halfHeight * 0.48, halfWidth * 0.88, halfHeight * 0.02);
+    graphics.bezierCurveTo(halfWidth * 0.99, -halfHeight * 0.48, halfWidth * 0.45, -halfHeight * 0.8, halfWidth * 0.02, -halfHeight * 0.72);
+    graphics.bezierCurveTo(-halfWidth * 0.44, -halfHeight * 0.9, -halfWidth * 0.98, -halfHeight * 0.58, -halfWidth * 0.9, -halfHeight * 0.12);
+    graphics.close();
   }
 
   private paintTrafficControlBadge(graphics: Graphics, width: number, height: number, runtime: RegionRuntimeState): void {
