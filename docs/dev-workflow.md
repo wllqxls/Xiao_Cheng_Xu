@@ -83,6 +83,14 @@ node scripts/verify-map-layout.mjs
 4. 点击预览。
 5. 检查地图区域、修复、隔离、推进、升级、事件、设置、重开、教程提示和胜负面板。
 
+如果修改了 `GameBootstrap.ts` 后浏览器刷新仍显示旧画面，先等待 Cocos preview target 编译完成：
+
+```powershell
+node scripts/wait-cocos-preview-marker.mjs paintTerritoryShape 360000
+```
+
+把 `paintTerritoryShape` 换成本次改动中新增或修改后必然会出现在预览 chunk 里的函数名或字符串。脚本返回成功后再刷新 `http://127.0.0.1:7456/`。不要用反复刷新浏览器替代这个等待，因为浏览器使用的是 Cocos 的 `preview` target，而不是先更新的 `editor` target。
+
 ## 微信开发者工具
 
 安装路径：
