@@ -4,8 +4,8 @@ const regionConfig = JSON.parse(fs.readFileSync('assets/configs/region-config.js
 
 const mapScaleX = 780;
 const mapScaleY = 650;
-const cardBaseWidth = 240;
-const cardBaseHeight = 76;
+const cardBaseWidth = 258;
+const cardBaseHeight = 82;
 const selectedScalePadding = 1.06;
 const maxAllowedOverlapArea = 500;
 

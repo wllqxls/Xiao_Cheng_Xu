@@ -12,7 +12,14 @@ function calculatePortraitViewportScale(visibleWidth, visibleHeight) {
     return 1;
   }
 
-  return Math.min(visibleWidth / designWidth, visibleHeight / designHeight);
+  const designAspect = designWidth / designHeight;
+  const visibleAspect = visibleWidth / visibleHeight;
+
+  if (visibleWidth < designWidth || visibleAspect <= designAspect) {
+    return 1;
+  }
+
+  return Math.min(1, visibleHeight / designHeight);
 }
 
 const landscape = calculatePortraitViewportScale(1280, 720);
@@ -22,9 +29,12 @@ const portrait = calculatePortraitViewportScale(1080, 1920);
 assert(portrait === 1, `Expected portrait scale 1, got ${portrait}`);
 
 const narrow = calculatePortraitViewportScale(360, 640);
-assert(narrow === 1 / 3, `Expected 360x640 scale 1/3, got ${narrow}`);
+assert(narrow === 1, `Expected narrow portrait scale 1, got ${narrow}`);
+
+const iphonePreview = calculatePortraitViewportScale(491, 811);
+assert(iphonePreview === 1, `Expected iPhone preview scale 1, got ${iphonePreview}`);
 
 const invalid = calculatePortraitViewportScale(0, 0);
 assert(invalid === 1, `Expected invalid viewport fallback scale 1, got ${invalid}`);
 
-console.log(JSON.stringify({ landscape, portrait, narrow, invalid }, null, 2));
+console.log(JSON.stringify({ landscape, portrait, narrow, iphonePreview, invalid }, null, 2));

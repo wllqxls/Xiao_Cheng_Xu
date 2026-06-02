@@ -57,7 +57,7 @@
       "restoreDifficulty": 0.3,
       "resourceYield": 5,
       "transportHubs": ["airport", "rail", "road"],
-      "mapPosition": { "x": 0.62, "y": 0.56, "size": 0.9 },
+      "mapPosition": { "x": 0.65, "y": 0.56, "size": 0.9 },
       "corruptionProfile": { "dotDensity": 0.08, "overlayIntensity": 0.08 },
       "neighbors": ["moss-ring", "north-gate", "silver-dam"]
     },

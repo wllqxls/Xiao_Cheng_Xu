@@ -52,8 +52,8 @@ const { ccclass, property } = _decorator;
 
 const PORTRAIT_DESIGN_WIDTH = 1080;
 const PORTRAIT_DESIGN_HEIGHT = 1920;
-const REGION_CARD_BASE_WIDTH = 240;
-const REGION_CARD_BASE_HEIGHT = 76;
+const REGION_CARD_BASE_WIDTH = 258;
+const REGION_CARD_BASE_HEIGHT = 82;
 
 const STATE_COLORS: Record<RegionState, Color> = {
   unaffected: new Color(77, 184, 142, 255),
@@ -314,7 +314,14 @@ export class GameBootstrap extends Component {
       return 1;
     }
 
-    return Math.min(visibleWidth / PORTRAIT_DESIGN_WIDTH, visibleHeight / PORTRAIT_DESIGN_HEIGHT);
+    const designAspect = PORTRAIT_DESIGN_WIDTH / PORTRAIT_DESIGN_HEIGHT;
+    const visibleAspect = visibleWidth / visibleHeight;
+
+    if (visibleWidth < PORTRAIT_DESIGN_WIDTH || visibleAspect <= designAspect) {
+      return 1;
+    }
+
+    return Math.min(1, visibleHeight / PORTRAIT_DESIGN_HEIGHT);
   }
 
   private buildAudio(): void {
@@ -396,20 +403,25 @@ export class GameBootstrap extends Component {
       'CategoryLabel',
       node,
       CATEGORY_MARKS[region.category],
-      17,
-      new Vec3(-width / 2 + 24, 11, 0),
+      18,
+      new Vec3(-width / 2 + 25, 12, 0),
     );
-    categoryLabel.getComponent(UITransform)?.setContentSize(34, 28);
-    const nameLabel = this.createLabel('NameLabel', node, region.displayName, 19, new Vec3(18, 12, 0));
-    nameLabel.getComponent(UITransform)?.setContentSize(width - 62, 30);
+    categoryLabel.getComponent(UITransform)?.setContentSize(36, 30);
+    this.addReadableLabelOutline(categoryLabel);
+
+    const nameLabel = this.createLabel('NameLabel', node, region.displayName, 21, new Vec3(18, 13, 0));
+    nameLabel.getComponent(UITransform)?.setContentSize(width - 66, 32);
+    this.addReadableLabelOutline(nameLabel);
+
     const statusLabel = this.createLabel(
       'StatusLabel',
       node,
       '',
-      16,
-      new Vec3(18, -16, 0),
+      17,
+      new Vec3(18, -17, 0),
     );
-    statusLabel.getComponent(UITransform)?.setContentSize(width - 62, 26);
+    statusLabel.getComponent(UITransform)?.setContentSize(width - 66, 28);
+    this.addReadableLabelOutline(statusLabel);
     const graphics = node.getComponent(Graphics);
 
     if (!graphics) {
@@ -1302,6 +1314,11 @@ export class GameBootstrap extends Component {
     label.verticalAlign = Label.VerticalAlign.CENTER;
 
     return label;
+  }
+
+  private addReadableLabelOutline(label: Label): void {
+    label.outlineColor = new Color(18, 27, 38, 220);
+    label.outlineWidth = 2;
   }
 
   private createButton(
