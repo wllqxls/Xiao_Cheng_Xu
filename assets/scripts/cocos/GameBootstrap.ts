@@ -52,6 +52,8 @@ const { ccclass, property } = _decorator;
 
 const PORTRAIT_DESIGN_WIDTH = 1080;
 const PORTRAIT_DESIGN_HEIGHT = 1920;
+const REGION_CARD_BASE_WIDTH = 240;
+const REGION_CARD_BASE_HEIGHT = 76;
 
 const STATE_COLORS: Record<RegionState, Color> = {
   unaffected: new Color(77, 184, 142, 255),
@@ -380,8 +382,8 @@ export class GameBootstrap extends Component {
   private createRegionCard(parent: Node, region: RegionConfig, index: number): RegionCard {
     const mapPoint = this.getMapPoint(region, index);
     const mapPosition = region.mapPosition ?? { x: 0.5, y: 0.5, size: 1 };
-    const width = Math.round(300 * mapPosition.size);
-    const height = Math.round(88 * mapPosition.size);
+    const width = Math.round(REGION_CARD_BASE_WIDTH * mapPosition.size);
+    const height = Math.round(REGION_CARD_BASE_HEIGHT * mapPosition.size);
     const node = this.createPanel(
       `Region-${region.id}`,
       parent,
@@ -394,20 +396,20 @@ export class GameBootstrap extends Component {
       'CategoryLabel',
       node,
       CATEGORY_MARKS[region.category],
-      20,
-      new Vec3(-width / 2 + 28, 13, 0),
+      17,
+      new Vec3(-width / 2 + 24, 11, 0),
     );
-    categoryLabel.getComponent(UITransform)?.setContentSize(42, 34);
-    const nameLabel = this.createLabel('NameLabel', node, region.displayName, 23, new Vec3(24, 16, 0));
-    nameLabel.getComponent(UITransform)?.setContentSize(width - 72, 34);
+    categoryLabel.getComponent(UITransform)?.setContentSize(34, 28);
+    const nameLabel = this.createLabel('NameLabel', node, region.displayName, 19, new Vec3(18, 12, 0));
+    nameLabel.getComponent(UITransform)?.setContentSize(width - 62, 30);
     const statusLabel = this.createLabel(
       'StatusLabel',
       node,
       '',
-      19,
-      new Vec3(24, -18, 0),
+      16,
+      new Vec3(18, -16, 0),
     );
-    statusLabel.getComponent(UITransform)?.setContentSize(width - 72, 30);
+    statusLabel.getComponent(UITransform)?.setContentSize(width - 62, 26);
     const graphics = node.getComponent(Graphics);
 
     if (!graphics) {

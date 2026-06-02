@@ -108,6 +108,11 @@ Cocos preview portrait UI scaling check:
 node scripts/verify-responsive-layout.mjs
 ```
 
+Map region overlap check:
+```powershell
+node scripts/verify-map-layout.mjs
+```
+
 ## 文档入口
 
 - [项目规则](CLAUDE.md)

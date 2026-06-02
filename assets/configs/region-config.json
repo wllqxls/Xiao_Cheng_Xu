@@ -12,7 +12,7 @@
       "restoreDifficulty": 0.55,
       "resourceYield": 4,
       "transportHubs": ["port", "seaRoute", "road"],
-      "mapPosition": { "x": 0.22, "y": 0.74, "size": 1.15 },
+      "mapPosition": { "x": 0.2, "y": 0.78, "size": 0.86 },
       "corruptionProfile": { "dotDensity": 0.82, "overlayIntensity": 0.9 },
       "neighbors": ["moss-ring", "north-gate"]
     },
@@ -27,7 +27,7 @@
       "restoreDifficulty": 0.4,
       "resourceYield": 3,
       "transportHubs": ["road"],
-      "mapPosition": { "x": 0.47, "y": 0.67, "size": 1 },
+      "mapPosition": { "x": 0.4, "y": 0.66, "size": 0.82 },
       "corruptionProfile": { "dotDensity": 0.54, "overlayIntensity": 0.56 },
       "neighbors": ["ash-harbor", "glass-yard"]
     },
@@ -42,7 +42,7 @@
       "restoreDifficulty": 0.35,
       "resourceYield": 2,
       "transportHubs": ["rail", "road"],
-      "mapPosition": { "x": 0.67, "y": 0.78, "size": 0.92 },
+      "mapPosition": { "x": 0.58, "y": 0.82, "size": 0.82 },
       "corruptionProfile": { "dotDensity": 0.26, "overlayIntensity": 0.24 },
       "neighbors": ["ash-harbor", "glass-yard"]
     },
@@ -57,7 +57,7 @@
       "restoreDifficulty": 0.3,
       "resourceYield": 5,
       "transportHubs": ["airport", "rail", "road"],
-      "mapPosition": { "x": 0.52, "y": 0.5, "size": 1.28 },
+      "mapPosition": { "x": 0.62, "y": 0.56, "size": 0.9 },
       "corruptionProfile": { "dotDensity": 0.08, "overlayIntensity": 0.08 },
       "neighbors": ["moss-ring", "north-gate", "silver-dam"]
     },
@@ -72,7 +72,7 @@
       "restoreDifficulty": 0.38,
       "resourceYield": 3,
       "transportHubs": ["road", "rail"],
-      "mapPosition": { "x": 0.72, "y": 0.44, "size": 0.98 },
+      "mapPosition": { "x": 0.81, "y": 0.44, "size": 0.82 },
       "corruptionProfile": { "dotDensity": 0.3, "overlayIntensity": 0.28 },
       "neighbors": ["glass-yard", "low-field"]
     },
@@ -87,7 +87,7 @@
       "restoreDifficulty": 0.48,
       "resourceYield": 4,
       "transportHubs": ["road", "rail"],
-      "mapPosition": { "x": 0.42, "y": 0.33, "size": 1.1 },
+      "mapPosition": { "x": 0.39, "y": 0.42, "size": 0.86 },
       "corruptionProfile": { "dotDensity": 0.58, "overlayIntensity": 0.62 },
       "neighbors": ["silver-dam", "red-rail", "wind-archive"]
     },
@@ -102,7 +102,7 @@
       "restoreDifficulty": 0.32,
       "resourceYield": 2,
       "transportHubs": ["airport", "rail"],
-      "mapPosition": { "x": 0.25, "y": 0.25, "size": 0.9 },
+      "mapPosition": { "x": 0.2, "y": 0.3, "size": 0.8 },
       "corruptionProfile": { "dotDensity": 0.18, "overlayIntensity": 0.2 },
       "neighbors": ["low-field", "wind-archive"]
     },
@@ -117,7 +117,7 @@
       "restoreDifficulty": 0.36,
       "resourceYield": 5,
       "transportHubs": ["seaRoute", "road"],
-      "mapPosition": { "x": 0.62, "y": 0.17, "size": 0.96 },
+      "mapPosition": { "x": 0.55, "y": 0.23, "size": 0.82 },
       "corruptionProfile": { "dotDensity": 0.06, "overlayIntensity": 0.08 },
       "neighbors": ["low-field", "red-rail"]
     },
@@ -132,7 +132,7 @@
       "restoreDifficulty": 0.34,
       "resourceYield": 2,
       "transportHubs": ["port", "seaRoute"],
-      "mapPosition": { "x": 0.82, "y": 0.28, "size": 0.82 },
+      "mapPosition": { "x": 0.83, "y": 0.22, "size": 0.78 },
       "corruptionProfile": { "dotDensity": 0.24, "overlayIntensity": 0.26 },
       "neighbors": ["ash-harbor", "wind-archive"]
     },
@@ -147,7 +147,7 @@
       "restoreDifficulty": 0.46,
       "resourceYield": 6,
       "transportHubs": ["airport", "road"],
-      "mapPosition": { "x": 0.77, "y": 0.61, "size": 1 },
+      "mapPosition": { "x": 0.82, "y": 0.7, "size": 0.82 },
       "corruptionProfile": { "dotDensity": 0.05, "overlayIntensity": 0.06 },
       "neighbors": ["north-gate", "glass-yard", "silver-dam"]
     }
