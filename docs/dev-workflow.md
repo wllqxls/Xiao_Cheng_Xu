@@ -57,6 +57,14 @@ node scripts/verify-simulation.mjs
 
 该脚本会临时编译 `assets/scripts/sim/runLocalSimulation.ts` 到 `temp/simulation-check`，然后验证升级、修复、隔离、交通管控、事件选择、推进回合、胜利和失败场景。`temp/` 是忽略目录，脚本输出不需要提交。
 
+验证存档系统：
+
+```powershell
+node scripts/verify-save-system.mjs
+```
+
+该脚本会验证存档序列化、读取、清理、旧存档迁移、音量范围钳制，以及缺少必填字段的坏存档不会被读入。
+
 验证 Cocos 场景接入：
 
 ```powershell

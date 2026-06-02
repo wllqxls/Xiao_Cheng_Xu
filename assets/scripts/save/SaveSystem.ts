@@ -51,6 +51,10 @@ export function clearSave(storage: SaveStorage): void {
 
 function migrateSave(save: Partial<GameState>): GameState | undefined {
   if (save.version === 1) {
+    if (!hasRequiredV1Fields(save)) {
+      return undefined;
+    }
+
     return {
       ...save,
       spreadReductionTurns: save.spreadReductionTurns ?? 0,
@@ -62,6 +66,16 @@ function migrateSave(save: Partial<GameState>): GameState | undefined {
   }
 
   return undefined;
+}
+
+function hasRequiredV1Fields(save: Partial<GameState>): boolean {
+  return isFiniteNumber(save.day)
+    && isFiniteNumber(save.resources)
+    && isFiniteNumber(save.globalRisk)
+    && isFiniteNumber(save.globalRestoreProgress)
+    && isRecord(save.regionStates)
+    && isRecord(save.upgradeLevels)
+    && isValidResult(save.result);
 }
 
 function normalizeRegionStates(regionStates: GameState['regionStates'] | undefined): GameState['regionStates'] {
@@ -95,4 +109,16 @@ function clampVolume(value: number | undefined, fallback: number): number {
   }
 
   return Math.max(0, Math.min(1, value));
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isValidResult(value: unknown): value is GameState['result'] {
+  return value === undefined || value === 'playing' || value === 'victory' || value === 'failure';
 }
